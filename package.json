@@ -6,5 +6,16 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.1",
     "react-google-recaptcha": "^3.1.0"
+  },
+  
+  "scripts": {
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
   }
+
 }

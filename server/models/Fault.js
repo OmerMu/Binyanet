@@ -1,38 +1,35 @@
 const mongoose = require("mongoose");
 
-const faultSchema = new mongoose.Schema(
+const FaultHistorySchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    description: {
-      type: String,
-      required: true,
-    },
-    adminNote: {
-      type: String,
-      default: "",
-      trim: true,
-    },
+    text: { type: String, required: true },
+    byUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    byName: { type: String },
+  },
+  { timestamps: true },
+);
+
+const FaultSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    description: { type: String, required: true },
     status: {
       type: String,
       enum: ["open", "in_progress", "closed"],
       default: "open",
     },
-    createdBy: {
+    tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    buildingId: {
-      type: String,
-      default: "default-building",
-      // בהמשך נחליף לזהות בניין אמיתית
-    },
+    committeeId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    adminNote: { type: String, default: "" },
+
+    // ✅ חדש
+    history: { type: [FaultHistorySchema], default: [] },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-module.exports = mongoose.model("Fault", faultSchema);
+module.exports = mongoose.model("Fault", FaultSchema);

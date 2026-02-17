@@ -30,8 +30,11 @@ export default function Home() {
 
   const goToArea = () => {
     if (!user) return setLoginOpen(true);
+
     if (user.role === "admin") return navigate("/admin");
-    return navigate("/dashboard");
+    if (user.role === "company") return navigate("/company");
+    if (user.role === "committee") return navigate("/committee");
+    return navigate("/tenant");
   };
 
   const scrollTo = (id) => {

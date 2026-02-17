@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import api from "../services/api";
-import ReCAPTCHA from "react-google-recaptcha"; // ✅ הוספה
+import ReCAPTCHA from "react-google-recaptcha";
+
+function roleHome(role) {
+  if (role === "admin") return "/admin";
+  if (role === "company") return "/company";
+  if (role === "committee") return "/committee";
+  return "/tenant";
+}
 
 export default function LoginModal({ onClose }) {
   const [email, setEmail] = useState("");
@@ -14,6 +21,8 @@ export default function LoginModal({ onClose }) {
     e.preventDefault();
     setError("");
 
+    // אם אצלך השרת ב-DEV ומדלג על captcha, אפשר להשאיר בלי חובה
+    // אבל נשמור את זה כמו שהיה אצלך:
     if (!captchaToken) {
       setError("נא לאשר שאינך רובוט");
       return;
@@ -30,11 +39,7 @@ export default function LoginModal({ onClose }) {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      if (user.role === "admin") {
-        window.location.href = "/admin";
-      } else {
-        window.location.href = "/dashboard";
-      }
+      window.location.href = roleHome(user.role);
     } catch (err) {
       setError("פרטי התחברות שגויים.");
     }
@@ -49,7 +54,7 @@ export default function LoginModal({ onClose }) {
 
       <div className="fixed top-1/2 left-1/2 z-50 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 w-[90%] max-w-md rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
-          התחברות ללקוחות קיימים
+          התחברות
         </h2>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -70,7 +75,6 @@ export default function LoginModal({ onClose }) {
             className="w-full border border-gray-300 rounded px-3 py-2 mt-1"
           />
 
-          {/* ✅ רכיב ה-reCAPTCHA */}
           <ReCAPTCHA
             sitekey="6LfS_VorAAAAAMPRnGoiRi9eDRt3rHB_KRgTSJRP"
             onChange={(token) => setCaptchaToken(token)}

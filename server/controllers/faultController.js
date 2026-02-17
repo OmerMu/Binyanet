@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Fault = require("../models/Fault");
 
-// דייר פותח תקלה
+// Tenant creates a fault
 exports.createFault = async (req, res) => {
   try {
     const { title, description } = req.body;
@@ -10,10 +10,14 @@ exports.createFault = async (req, res) => {
       return res.status(400).json({ message: "נא למלא כותרת ותיאור" });
     }
 
+    // Important: attach buildingId so dashboards can filter correctly
+    const buildingId = req.user?.buildingId || "default-building";
+
     const fault = new Fault({
       title,
       description,
       createdBy: req.user.id,
+      buildingId,
     });
 
     await fault.save();
@@ -38,15 +42,31 @@ exports.getMyFaults = async (req, res) => {
 };
 
 // אדמין – רואה את כל התקלות
+// controllers/faultController.js
+
+// Admin/Committee - get faults (by buildingId)
 exports.getAllFaults = async (req, res) => {
   try {
-    const faults = await Fault.find()
-      .populate("createdBy", "email role")
-      .sort({ createdAt: -1 });
-    res.json(faults);
+    const role = req.user?.role;
+
+    // Global admin: see everything
+    if (role === "admin") {
+      const faults = await Fault.find({}).sort({ createdAt: -1 });
+      return res.json(faults);
+    }
+
+    // Committee: see only its building
+    if (role === "committee") {
+      const buildingId = req.user?.buildingId;
+      if (!buildingId) return res.json([]);
+      const faults = await Fault.find({ buildingId }).sort({ createdAt: -1 });
+      return res.json(faults);
+    }
+
+    return res.status(403).json({ message: "Not allowed" });
   } catch (err) {
     console.error("GET ALL FAULTS ERROR:", err);
-    res.status(500).json({ message: "שגיאה בשליפת כל התקלות" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -55,47 +75,40 @@ exports.getAllFaults = async (req, res) => {
 // אדמין – שינוי סטטוס ו/או הוספת הערת ועד
 exports.updateFault = async (req, res) => {
   try {
-    const { status, adminNote } = req.body;
+    const { status, adminNote, historyNote } = req.body;
 
-    // 1) בדיקת id תקין (מונע CastError)
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "מזהה תקלה לא תקין" });
+    const fault = await Fault.findById(req.params.id);
+    if (!fault) return res.status(404).json({ message: "Fault not found" });
+
+    // track status change
+    if (status && status !== fault.status) {
+      fault.history.push({
+        text: `סטטוס השתנה ל: ${status}`,
+        byUserId: req.user?._id,
+        byName: req.user?.name,
+      });
+      fault.status = status;
     }
 
-    const update = {};
-
-    // 2) סטטוס (אופציונלי)
-    if (status !== undefined) {
-      const allowed = ["open", "in_progress", "closed"];
-      if (!allowed.includes(status)) {
-        return res.status(400).json({ message: "סטטוס לא חוקי" });
-      }
-      update.status = status;
+    // update admin note (optional)
+    if (typeof adminNote === "string" && adminNote !== fault.adminNote) {
+      fault.adminNote = adminNote;
     }
 
-    // 3) הערת ועד (אופציונלי)
-    if (adminNote !== undefined) {
-      update.adminNote = String(adminNote);
+    // ✅ add treatment history note
+    if (historyNote && String(historyNote).trim()) {
+      fault.history.push({
+        text: String(historyNote).trim(),
+        byUserId: req.user?._id,
+        byName: req.user?.name,
+      });
     }
 
-    // 4) אם לא נשלח שום דבר לעדכון
-    if (Object.keys(update).length === 0) {
-      return res.status(400).json({ message: "לא נשלחו שדות לעדכון" });
-    }
-
-    const fault = await Fault.findByIdAndUpdate(id, update, { new: true });
-
-    if (!fault) {
-      return res.status(404).json({ message: "תקלה לא נמצאה" });
-    }
-
-    return res.json(fault);
+    await fault.save();
+    res.json({ message: "Fault updated", fault });
   } catch (err) {
-    console.error("UPDATE FAULT ERROR:", err);
-    return res.status(500).json({
-      message: "שגיאה בעדכון תקלה",
-      error: err.message, // ✅ בפיתוח זה יעזור לך לראות מה נשבר
-    });
+    res
+      .status(500)
+      .json({ message: "Error updating fault", error: err.message });
   }
 };

@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   createFault,
   getMyFaults,
@@ -7,14 +8,16 @@ const {
   updateFault,
 } = require("../controllers/faultController");
 
-const { protect, requireAdmin } = require("../middleware/authMiddleware");
+const { protect, authorize } = require("../middleware/authMiddleware");
 
-// דייר
-router.post("/", protect, createFault);
-router.get("/my", protect, getMyFaults);
+// tenant – פותח תקלה ורואה רק שלו
 
-// אדמין
-router.get("/", protect, requireAdmin, getAllFaults);
-router.patch("/:id", protect, requireAdmin, updateFault);
+router.post("/", protect, authorize("tenant"), createFault);
+router.get("/my", protect, authorize("tenant"), getMyFaults);
+
+// committee/admin – רואים הכל ומעדכנים
+router.get("/", protect, authorize("admin", "committee"), getAllFaults);
+router.get("/", protect, authorize("admin", "committee"), getAllFaults);
+router.patch("/:id", protect, authorize("admin", "committee"), updateFault);
 
 module.exports = router;

@@ -25,11 +25,10 @@ export default function LoginForm() {
       localStorage.setItem("user", JSON.stringify(user));
 
       // הפניה לדשבורד לפי תפקיד
-      if (user.role === "admin") {
-        window.location.href = "/admin";
-      } else {
-        window.location.href = "/dashboard";
-      }
+      if (user.role === "admin") window.location.href = "/admin";
+      else if (user.role === "company") window.location.href = "/company";
+      else if (user.role === "committee") window.location.href = "/committee";
+      else window.location.href = "/tenant";
     } catch (err) {
       setError("ההתחברות נכשלה. בדוק את הפרטים ונסה שוב.");
     } finally {

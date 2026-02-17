@@ -1,14 +1,43 @@
-import { useEffect, useMemo, useState } from "react";
-import api from "../services/api";
+import { useEffect, useState } from "react";
 
 export default function AdminFaults() {
   const [faults, setFaults] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   const [noteDrafts, setNoteDrafts] = useState({});
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [q, setQ] = useState("");
+  const [historyDrafts, setHistoryDrafts] = useState({});
+
+  const token = localStorage.getItem("token");
+
+  const fetchFaults = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:5000/api/faults/admin", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setFaults(Array.isArray(data) ? data : []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFaults();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const updateFault = async (id, payload) => {
+    await fetch(`http://localhost:5000/api/faults/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    fetchFaults();
+  };
 
   const statusLabel = (s) => {
     if (s === "open") return "פתוחה";
@@ -17,136 +46,33 @@ export default function AdminFaults() {
     return s;
   };
 
-  const loadFaults = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.get("/api/faults");
-      setFaults(res.data);
-    } catch (err) {
-      setError("לא הצלחנו לטעון תקלות. ודא שאתה מחובר כאדמין וששרת רץ.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadFaults();
-  }, []);
-
-  const updateFault = async (faultId, payload) => {
-    try {
-      const res = await api.patch(`/api/faults/${faultId}`, payload);
-      setFaults((prev) => prev.map((f) => (f._id === faultId ? res.data : f)));
-      // אופציונלי: אם שמרנו הערה, ננקה טיוטה
-      if (payload.adminNote !== undefined) {
-        setNoteDrafts((prev) => {
-          const copy = { ...prev };
-          delete copy[faultId];
-          return copy;
-        });
-      }
-    } catch (err) {
-      alert("עדכון תקלה נכשל");
-    }
-  };
-
-  const filtered = useMemo(() => {
-    const text = q.trim().toLowerCase();
-
-    return faults.filter((f) => {
-      const matchStatus =
-        statusFilter === "all" ? true : f.status === statusFilter;
-
-      const matchText =
-        !text ||
-        (f.title || "").toLowerCase().includes(text) ||
-        (f.description || "").toLowerCase().includes(text) ||
-        (f.adminNote || "").toLowerCase().includes(text);
-
-      return matchStatus && matchText;
-    });
-  }, [faults, statusFilter, q]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen p-6 bg-gray-100 text-gray-800">
-        טוען תקלות...
-      </div>
-    );
-  }
+  if (loading) return <div className="p-6">טוען תקלות...</div>;
 
   return (
-    <div className="min-h-screen p-6 bg-gray-100 text-gray-800">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <h1 className="text-3xl font-bold">ניהול תקלות</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">ניהול תקלות (אדמין)</h1>
 
-        <button
-          onClick={loadFaults}
-          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-        >
-          רענון
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded shadow p-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">סטטוס:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border rounded px-2 py-1"
-          >
-            <option value="all">הכל</option>
-            <option value="open">פתוחות</option>
-            <option value="in_progress">בטיפול</option>
-            <option value="closed">סגורות</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">חיפוש:</span>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="border rounded px-3 py-1 w-full sm:w-80"
-            placeholder="חפש לפי כותרת/תיאור/הערת ועד..."
-          />
-        </div>
-
-        <div className="text-sm text-gray-600">
-          מציג {filtered.length} מתוך {faults.length}
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-white border border-red-200 text-red-700 p-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-
-      {filtered.length === 0 ? (
-        <div className="bg-white p-4 rounded shadow">אין תקלות להצגה.</div>
+      {faults.length === 0 ? (
+        <div className="text-gray-600">אין תקלות.</div>
       ) : (
-        <div className="bg-white rounded shadow overflow-x-auto">
-          <table className="w-full text-right">
-            <thead className="bg-gray-50 border-b">
+        <div className="overflow-auto border rounded-lg bg-white">
+          <table className="min-w-[1200px] w-full text-right">
+            <thead className="bg-gray-50">
               <tr>
                 <th className="p-3">כותרת</th>
                 <th className="p-3">תיאור</th>
                 <th className="p-3">סטטוס</th>
                 <th className="p-3">נוצר</th>
-                <th className="p-3">שינוי סטטוס</th>
-                <th className="p-3">הערת ועד</th>
-                <th className="p-3">עדכון הערה</th>
+                <th className="p-3">עדכן סטטוס</th>
+                <th className="p-3">הערה לדייר</th>
+                <th className="p-3">היסטוריית טיפולים</th>
               </tr>
             </thead>
-            <tbody>
-              {filtered.map((f) => (
-                <tr key={f._id} className="border-b align-top">
-                  <td className="p-3 font-medium">{f.title}</td>
 
+            <tbody>
+              {faults.map((f) => (
+                <tr key={f._id} className="border-t align-top">
+                  <td className="p-3 font-semibold">{f.title}</td>
                   <td className="p-3 text-gray-700">{f.description}</td>
 
                   <td className="p-3">
@@ -175,17 +101,16 @@ export default function AdminFaults() {
                     </select>
                   </td>
 
+                  {/* Admin note */}
                   <td className="p-3">
-                    <div className="text-sm text-gray-700">
+                    <div className="text-sm text-gray-700 mb-2">
                       {f.adminNote ? (
                         f.adminNote
                       ) : (
                         <span className="text-gray-400">אין הערה</span>
                       )}
                     </div>
-                  </td>
 
-                  <td className="p-3">
                     <textarea
                       className="w-72 border rounded px-2 py-1 text-sm"
                       rows={2}
@@ -198,6 +123,7 @@ export default function AdminFaults() {
                       }
                       placeholder="כתוב עדכון לדייר..."
                     />
+
                     <button
                       onClick={() =>
                         updateFault(f._id, {
@@ -207,6 +133,59 @@ export default function AdminFaults() {
                       className="mt-2 px-3 py-1 rounded bg-gray-800 text-white hover:bg-black text-sm"
                     >
                       שמור הערה
+                    </button>
+                  </td>
+
+                  {/* History */}
+                  <td className="p-3">
+                    <div className="text-sm text-gray-700 space-y-2 mb-3">
+                      {(f.history || []).length === 0 ? (
+                        <div className="text-gray-400">אין היסטוריה עדיין</div>
+                      ) : (
+                        (f.history || [])
+                          .slice(-4)
+                          .reverse()
+                          .map((h, idx) => (
+                            <div
+                              key={idx}
+                              className="border rounded p-2 bg-gray-50"
+                            >
+                              <div className="font-medium">{h.text}</div>
+                              <div className="text-xs text-gray-500">
+                                {h.byName ? `${h.byName} · ` : ""}
+                                {h.createdAt
+                                  ? new Date(h.createdAt).toLocaleString(
+                                      "he-IL",
+                                    )
+                                  : ""}
+                              </div>
+                            </div>
+                          ))
+                      )}
+                    </div>
+
+                    <input
+                      className="w-72 border rounded px-2 py-1 text-sm"
+                      value={historyDrafts[f._id] ?? ""}
+                      onChange={(e) =>
+                        setHistoryDrafts((prev) => ({
+                          ...prev,
+                          [f._id]: e.target.value,
+                        }))
+                      }
+                      placeholder='דוגמה: "הוזמן אינסטלטור"'
+                    />
+
+                    <button
+                      onClick={() => {
+                        const text = (historyDrafts[f._id] ?? "").trim();
+                        if (!text) return;
+                        setHistoryDrafts((prev) => ({ ...prev, [f._id]: "" }));
+                        updateFault(f._id, { historyNote: text });
+                      }}
+                      className="mt-2 px-3 py-1 rounded bg-emerald-700 text-white hover:bg-emerald-800 text-sm"
+                    >
+                      הוסף עדכון טיפול
                     </button>
                   </td>
                 </tr>

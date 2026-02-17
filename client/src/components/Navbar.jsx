@@ -25,15 +25,16 @@ export default function Navbar() {
 
   const goAnchor = (id) => {
     setOpen(false);
+
     // אם לא בדף הבית, ננווט אליו ואז נגלול
     if (location.pathname !== "/") {
       navigate(`/#${id}`);
-      // קצר כדי לתת ל-React להחליף עמוד
       setTimeout(() => {
         document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
       }, 50);
       return;
     }
+
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -46,9 +47,12 @@ export default function Navbar() {
 
   const goArea = () => {
     setOpen(false);
-    if (!user) return goAnchor("contact");
+    if (!user) return navigate("/login");
+
     if (user.role === "admin") return navigate("/admin");
-    return navigate("/dashboard");
+    if (user.role === "company") return navigate("/company");
+    if (user.role === "committee") return navigate("/committee");
+    return navigate("/tenant");
   };
 
   return (
@@ -89,20 +93,56 @@ export default function Navbar() {
 
           <div className="w-px h-6 bg-gray-200 mx-2" />
 
-          <button
-            onClick={goArea}
-            className="px-4 py-2 rounded-lg bg-emerald-700 text-white font-semibold hover:bg-emerald-800 transition"
-          >
-            {user ? "האזור האישי" : "השארת פרטים"}
-          </button>
+          {!user ? (
+            <>
+              {/* Leave details (scroll to contact) */}
+              <button
+                onClick={() => goAnchor("contact")}
+                className="px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition font-semibold"
+              >
+                השארת פרטים
+              </button>
 
-          {user && (
-            <button
-              onClick={logout}
-              className="px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
-            >
-              התנתקות
-            </button>
+              {/* Login */}
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/login");
+                }}
+                className="px-4 py-2 rounded-lg bg-emerald-700 text-white font-semibold hover:bg-emerald-800 transition"
+              >
+                כניסה
+              </button>
+
+              {/* Register */}
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/register");
+                }}
+                className="px-4 py-2 rounded-lg bg-black text-white font-semibold hover:opacity-90 transition"
+              >
+                הרשמה
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Personal area */}
+              <button
+                onClick={goArea}
+                className="px-4 py-2 rounded-lg bg-emerald-700 text-white font-semibold hover:bg-emerald-800 transition"
+              >
+                האזור האישי
+              </button>
+
+              {/* Logout */}
+              <button
+                onClick={logout}
+                className="px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+              >
+                התנתקות
+              </button>
+            </>
           )}
         </nav>
 
@@ -144,20 +184,51 @@ export default function Navbar() {
 
             <div className="h-px bg-gray-100 my-2" />
 
-            <button
-              onClick={goArea}
-              className="px-4 py-2 rounded-lg bg-emerald-700 text-white font-semibold hover:bg-emerald-800 transition"
-            >
-              {user ? "האזור האישי" : "השארת פרטים"}
-            </button>
+            {!user ? (
+              <>
+                <button
+                  onClick={() => goAnchor("contact")}
+                  className="px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition font-semibold"
+                >
+                  השארת פרטים
+                </button>
 
-            {user && (
-              <button
-                onClick={logout}
-                className="px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
-              >
-                התנתקות
-              </button>
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    navigate("/login");
+                  }}
+                  className="px-4 py-2 rounded-lg bg-emerald-700 text-white font-semibold hover:bg-emerald-800 transition"
+                >
+                  כניסה
+                </button>
+
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    navigate("/register");
+                  }}
+                  className="px-4 py-2 rounded-lg bg-black text-white font-semibold hover:opacity-90 transition"
+                >
+                  הרשמה
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={goArea}
+                  className="px-4 py-2 rounded-lg bg-emerald-700 text-white font-semibold hover:bg-emerald-800 transition"
+                >
+                  האזור האישי
+                </button>
+
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                >
+                  התנתקות
+                </button>
+              </>
             )}
           </div>
         </div>

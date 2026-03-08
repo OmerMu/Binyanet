@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import api from "../services/api";
 
 export default function AdminFaults() {
   const [faults, setFaults] = useState([]);
@@ -7,16 +8,14 @@ export default function AdminFaults() {
   const [noteDrafts, setNoteDrafts] = useState({});
   const [historyDrafts, setHistoryDrafts] = useState({});
 
-  const token = localStorage.getItem("token");
-
   const fetchFaults = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/faults/admin", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setFaults(Array.isArray(data) ? data : []);
+      // ✅ בשרת קיים GET /api/faults
+      const res = await api.get("/api/faults");
+      setFaults(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      setFaults([]);
     } finally {
       setLoading(false);
     }
@@ -24,19 +23,12 @@ export default function AdminFaults() {
 
   useEffect(() => {
     fetchFaults();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateFault = async (id, payload) => {
-    await fetch(`http://localhost:5000/api/faults/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    fetchFaults();
+    // ✅ בשרת קיים PATCH /api/faults/:id
+    await api.patch(`/api/faults/${id}`, payload);
+    await fetchFaults();
   };
 
   const statusLabel = (s) => {

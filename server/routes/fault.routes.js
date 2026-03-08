@@ -2,22 +2,19 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  createFault,
-  getMyFaults,
   getAllFaults,
+  getMyFaults,
+  getCommitteeFaults,
+  createFault,
   updateFault,
 } = require("../controllers/faultController");
 
 const { protect, authorize } = require("../middleware/authMiddleware");
 
-// tenant – פותח תקלה ורואה רק שלו
-
-router.post("/", protect, authorize("tenant"), createFault);
+router.get("/", protect, authorize("admin"), getAllFaults);
 router.get("/my", protect, authorize("tenant"), getMyFaults);
-
-// committee/admin – רואים הכל ומעדכנים
-router.get("/", protect, authorize("admin", "committee"), getAllFaults);
-router.get("/", protect, authorize("admin", "committee"), getAllFaults);
+router.get("/committee", protect, authorize("committee"), getCommitteeFaults);
+router.post("/", protect, authorize("tenant"), createFault);
 router.patch("/:id", protect, authorize("admin", "committee"), updateFault);
 
 module.exports = router;

@@ -82,8 +82,13 @@ export default function Home() {
               </h1>
 
               <p className="mt-5 text-lg leading-8 text-white/90 drop-shadow">
-                פחות הודעות בוואטסאפ, פחות בלבול, יותר תהליך מסודר: דיירים
-                פותחים תקלות, הוועד מעדכן סטטוס ומוסיף הערה – והכל נשמר.
+                פחות הודעות מבוזרות, פחות אי־בהירות, ויותר תהליך מסודר: הדיירים
+                פותחים קריאות שירות, הנהלת הבניין מעדכנת סטטוס ומוסיפה הערות –
+                .וכל המידע נשמר בצורה מתועדת ושקופה
+              </p>
+              <p className="mt-5 text-lg text-white/80 drop-shadow">
+                מותאם לבנייני מגורים קטנים ובינוניים · ממשק רספונסיבי לנייד
+                ולדסקטופ · ניהול מאובטח באמצעות JWT והרשאות מתקדמות
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row-reverse gap-3 sm:items-center">
@@ -103,9 +108,9 @@ export default function Home() {
               </div>
 
               <div className="mt-10 grid grid-cols-3 gap-3 text-center">
-                <Stat title="תקלות" value="ניהול מלא" />
-                <Stat title="דיירים" value="שליטה והרשאות" />
-                <Stat title="שקיפות" value="עדכונים בזמן אמת" />
+                <Stat title="ניהול תקלות" value="תיעוד מלא ומעקב סטטוסים" />
+                <Stat title="ניהול משתמשים" value="חלוקת הרשאות לפי תפקיד" />
+                <Stat title="שקיפות מלאה" value="עדכונים בזמן אמת לדיירים" />
               </div>
             </div>
 
@@ -117,25 +122,24 @@ export default function Home() {
 
               <ul className="mt-5 space-y-3 text-right text-[#1F1F1F]">
                 <li className="flex flex-row-reverse gap-3">
-                  <Dot /> דייר פותח תקלה ומקבל סטטוס מסודר
+                  <Dot /> פתיחת קריאות שירות על ידי דיירים בצורה פשוטה וברורה
                 </li>
                 <li className="flex flex-row-reverse gap-3">
-                  <Dot /> ועד מעדכן סטטוס + הערת ועד לדייר
+                  <Dot />
+                  עדכון סטטוס טיפול והוספת הערות רשמיות מטעם הנהלת הבניין
                 </li>
                 <li className="flex flex-row-reverse gap-3">
-                  <Dot /> אזור אדמין ייעודי לחברי ועד בלבד
+                  <Dot /> אזור ניהול ייעודי לבעלי הרשאות בלבד
                 </li>
                 <li className="flex flex-row-reverse gap-3">
-                  <Dot /> בסיס להרחבות: תשלומים, ספקים, מסמכים ועוד
+                  <Dot /> תשתית להרחבות עתידיות: תשלומים, ספקים, מסמכים וניהול
+                  מתקדם
                 </li>
               </ul>
 
               <div className="mt-7 p-5 rounded-2xl bg-white/70 border border-white/40 text-right">
-                <p className="font-semibold text-[#1F1F1F]">
-                  רוצה שנראה לך דמו?
-                </p>
-                <p className="text-[#1F1F1F]/70 text-sm mt-1 leading-6">
-                  השאר פרטים ונחזור אליך עם הצגת מערכת קצרה + התאמה לבניין.
+                <p className="text-[#1F1F1F]/70 text-lg mt-1 leading-6">
+                  .השאר פרטים ונחזור אליך עם הצגת מערכת קצרה + התאמה לבניין
                 </p>
                 <button
                   onClick={() => scrollTo("contact")}
@@ -160,30 +164,36 @@ export default function Home() {
               אודות העסק
             </h2>
             <p className="mt-5 text-white/90 leading-8 drop-shadow">
-              Binyanet נועדה להפוך ניהול ועד בית למשהו מסודר: פחות הודעות, פחות
-              “מי מטפל בזה?”, ויותר תהליך ברור. כל תקלה מתועדת, מתקדמת בסטטוסים,
-              והדייר רואה עדכון מהוועד במקום לרדוף אחרי תשובות.
+              המערכת פותחה מתוך מטרה לייעל ולמקצע את ניהול הבניין שלכם. המערכת
+              מצמצמת אי בהירויות, מונעת עיכובים בטיפול תקלות ויוצרת תהליך עבודה
+              ברור ומתועד. כל קריאת שירות מנוהלת בצורה מסודרת - משלב הפתיחה ועד
+              .לסגירת מעגל טיפול
             </p>
 
             <div className="mt-8 grid sm:grid-cols-2 gap-4">
               <Feature
                 title="סדר וארגון"
-                desc="כל המידע במקום אחד, בלי בלאגן."
+                desc="כל הנתונים מרוכזים במערכת אחת, בצורה מסודרת ונגישה"
               />
               <Feature
                 title="שירות לדייר"
-                desc="דייר פותח תקלה ורואה התקדמות."
+                desc="דיירים פותחים קריאות שירות ועוקבים אחר התקדמות הטיפול"
               />
-              <Feature title="ניהול ועד" desc="סטטוסים, הערות ועד ותיעוד." />
+              <Feature
+                title="ניהול ועד"
+                desc="ניהול סטטוסים, תיעוד פעולות והוספת הערות רשמיות"
+              />
               <Feature
                 title="מוכן לגדילה"
-                desc="בהמשך: תשלומים, ספקים, מסמכים."
+                desc="המערכת בנויה להתרחבות עתידית בהתאם לצורכי הבניין"
               />
             </div>
           </div>
 
           <div className="bg-white/85 backdrop-blur rounded-2xl border border-white/40 shadow-lg p-7">
-            <h3 className="text-xl font-extrabold text-right">איך זה עובד?</h3>
+            <h3 className="text-xl font-extrabold text-right">
+              ? איך זה עובד{" "}
+            </h3>
             <ol className="mt-5 space-y-4 text-right text-[#1F1F1F]">
               <li className="flex flex-row-reverse gap-3">
                 <Step n="1" /> דייר מתחבר ופותח תקלה
@@ -227,34 +237,34 @@ export default function Home() {
             שירותים עיקריים
           </h2>
           <p className="mt-4 text-white/90 leading-8 drop-shadow">
-            דף נחיתה צריך להסביר מהר מה הערך — אלו היכולות המרכזיות כרגע.
+            היכולות המרכזיות של המערכת לניהול יעיל, מסודר ושקוף של הבניין
           </p>
         </div>
 
         <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <ServiceCard
             title="ניהול תקלות"
-            desc="פתיחה, מעקב, סטטוסים ועדכון לדייר."
+            desc="פתיחת קריאות שירות, מעקב אחר סטטוס ועדכון הדיירים בזמן אמת"
           />
           <ServiceCard
             title="ממשק ועד"
-            desc="אזור אדמין לחברי ועד בלבד (הרשאות)."
+            desc="אזור ניהול ייעודי לחברי הנהלה בעלי הרשאות"
           />
           <ServiceCard
             title="ניהול דיירים"
-            desc="בסיס לניהול משתמשים והרשאות."
+            desc="ניהול משתמשים והרשאות בהתאם לתפקידי המערכת"
           />
           <ServiceCard
             title="הודעות"
-            desc="תשתית לעדכונים מרוכזים לכל הדיירים."
+            desc="תשתית לעדכונים מרוכזים לכל הדיירים"
           />
           <ServiceCard
             title="תיעוד ושקיפות"
-            desc="כל פעולה נשמרת ומופיעה במערכת."
+            desc="כל פעולה נשמרת ומופיעה במערכת"
           />
           <ServiceCard
             title="מוכן להרחבה"
-            desc="תשלומים/ספקים/מסמכים – בהמשך הפיתוח."
+            desc="תשלומים/ספקים/מסמכים – בהמשך הפיתוח"
           />
         </div>
       </section>
@@ -270,15 +280,17 @@ export default function Home() {
               השארת פרטים
             </h2>
             <p className="mt-4 text-white/90 leading-8 drop-shadow">
-              השאר/י פרטים ונחזור אליך עם הצגת מערכת קצרה + התאמה לבניין.
+              השאירו פרטים ונחזור אליכם לתיאום הצגת מערכת והתאמה לצורכי הבניין
             </p>
 
             <div className="mt-8 bg-white/85 backdrop-blur border border-white/40 rounded-2xl p-6 text-right">
-              <p className="font-semibold text-[#1F1F1F]">מה חשוב לנו לדעת?</p>
+              <p className="font-semibold text-[#1F1F1F]">
+                : כדי להתאים את המערכת לבניין שלכם, נשמח לדעת
+              </p>
               <ul className="mt-3 text-[#1F1F1F]/70 text-sm space-y-2">
-                <li>• שם + טלפון לחזרה</li>
-                <li>• אימייל (אופציונלי)</li>
-                <li>• מספר דירות/גודל בניין (אופציונלי)</li>
+                <li>שם + טלפון לחזרה</li>
+                <li>אימייל (אופציונלי)</li>
+                <li>מספר דירות/גודל בניין (אופציונלי)</li>
               </ul>
             </div>
           </div>

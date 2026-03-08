@@ -48,10 +48,6 @@ export default function AdminTenants() {
       // 1) קודם נאשר את המשתמש (isApproved=true)
       await api.patch(`/api/system/users/${user._id}/approve`, {
         isApproved: true,
-      });
-
-      // 2) ואז נעדכן role לפי הבחירה (אם צריך)
-      await api.patch(`/api/system/users/${user._id}/role`, {
         role: user.role,
       });
 

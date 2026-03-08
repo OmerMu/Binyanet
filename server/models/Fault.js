@@ -24,11 +24,17 @@ const FaultSchema = new mongoose.Schema(
       required: true,
     },
     committeeId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    buildingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Building",
+      default: null,
+    },
     adminNote: { type: String, default: "" },
 
     // ✅ חדש
     history: { type: [FaultHistorySchema], default: [] },
   },
+
   { timestamps: true },
 );
 

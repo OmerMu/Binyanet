@@ -20,14 +20,14 @@ export default function LeadForm() {
 
     try {
       await api.post("/api/leads", {
-        fullName,
-        phone,
-        email: email || undefined,
-        buildingSize: buildingSize || undefined,
-        message: message || undefined,
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        email: email.trim() || undefined,
+        buildingSize: buildingSize.trim() || undefined,
+        message: message.trim() || undefined,
       });
 
-      setOk("הפרטים נשלחו בהצלחה! נחזור אליך בהקדם 🙂");
+      setOk("הפרטים נשלחו בהצלחה. נחזור אליך בהקדם 🙂");
       setFullName("");
       setPhone("");
       setEmail("");
@@ -44,8 +44,12 @@ export default function LeadForm() {
     <form
       onSubmit={submit}
       className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
+      dir="rtl"
     >
-      <h3 className="text-xl font-bold text-right">טופס השארת פרטים</h3>
+      <h3 className="text-xl font-bold text-right">השארת פרטים</h3>
+      <p className="text-sm text-gray-600 text-right mt-2 leading-6">
+        נשמח לתאם הצגת מערכת קצרה ולהתאים את הפתרון לצורכי הבניין.
+      </p>
 
       <div className="mt-4 space-y-3">
         <div className="text-right">
@@ -100,7 +104,7 @@ export default function LeadForm() {
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
             className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-            placeholder="מה היית רוצה שנדגים לך?"
+            placeholder="אם יש משהו חשוב שנדע לפני ההדגמה — כתוב כאן."
           />
         </div>
 

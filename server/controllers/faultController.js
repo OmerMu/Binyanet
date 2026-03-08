@@ -11,15 +11,12 @@ exports.createFault = async (req, res) => {
     }
 
     // Important: attach buildingId so dashboards can filter correctly
-    const buildingId = req.user?.buildingId || "default-building";
-
     const fault = new Fault({
       title,
       description,
-      createdBy: req.user.id,
-      buildingId,
+      tenantId: req.user._id,
+      buildingId: req.user?.buildingId ?? null,
     });
-
     await fault.save();
     res.status(201).json(fault);
   } catch (err) {
@@ -31,9 +28,10 @@ exports.createFault = async (req, res) => {
 // דייר – רואה רק את התקלות שלו
 exports.getMyFaults = async (req, res) => {
   try {
-    const faults = await Fault.find({ createdBy: req.user.id }).sort({
+    const faults = await Fault.find({ tenantId: req.user._id }).sort({
       createdAt: -1,
     });
+
     res.json(faults);
   } catch (err) {
     console.error("GET MY FAULTS ERROR:", err);
@@ -85,7 +83,7 @@ exports.updateFault = async (req, res) => {
       fault.history.push({
         text: `סטטוס השתנה ל: ${status}`,
         byUserId: req.user?._id,
-        byName: req.user?.name,
+        byName: req.user?.fullName,
       });
       fault.status = status;
     }
@@ -100,15 +98,25 @@ exports.updateFault = async (req, res) => {
       fault.history.push({
         text: String(historyNote).trim(),
         byUserId: req.user?._id,
-        byName: req.user?.name,
+        byName: req.user?.fullName,
       });
     }
 
     await fault.save();
-    res.json({ message: "Fault updated", fault });
+    return res.json(fault);
   } catch (err) {
     res
       .status(500)
       .json({ message: "Error updating fault", error: err.message });
+  }
+};
+exports.getCommitteeFaults = async (req, res) => {
+  try {
+    const buildingId = req.user?.buildingId ?? null;
+    const filter = buildingId ? { buildingId } : {};
+    const faults = await Fault.find(filter).sort({ createdAt: -1 });
+    return res.json(faults);
+  } catch (err) {
+    return res.status(500).json({ message: "Failed to load faults" });
   }
 };

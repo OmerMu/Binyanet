@@ -1,44 +1,72 @@
-// client/src/components/LoginForm.jsx
-
 import { useState } from "react";
+import ReCAPTCHA from "react-google-recaptcha";
 import api from "../services/api";
+
+function roleHome(role) {
+  if (role === "admin") return "/admin";
+  if (role === "company") return "/company";
+  if (role === "committee") return "/committee/dashboard";
+  return "/tenant";
+}
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [recaptchaToken, setRecaptchaToken] = useState(null);
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const siteKey = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
+
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+
+    if (!siteKey) {
+      setError("חסר REACT_APP_RECAPTCHA_SITE_KEY בקובץ .env של הלקוח.");
+      return;
+    }
+
+    if (!recaptchaToken) {
+      setError("נא לאשר reCAPTCHA לפני התחברות.");
+      return;
+    }
+
+    setLoading(true);
+
+    // ✅ Prevent token/user mismatch between roles
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
 
     try {
       const res = await api.post("/api/auth/login", {
-        email,
+        email: email.trim().toLowerCase(),
         password,
+        recaptchaToken, // ✅ unified name
       });
 
       const { token, user } = res.data;
+
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      // הפניה לדשבורד לפי תפקיד
-      if (user.role === "admin") window.location.href = "/admin";
-      else if (user.role === "company") window.location.href = "/company";
-      else if (user.role === "committee") window.location.href = "/committee";
-      else window.location.href = "/tenant";
+      window.location.href = roleHome(user.role);
     } catch (err) {
-      setError("ההתחברות נכשלה. בדוק את הפרטים ונסה שוב.");
+      setError(
+        err?.response?.data?.message ||
+          "ההתחברות נכשלה. בדוק את הפרטים ונסה שוב.",
+      );
+      setRecaptchaToken(null);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleLogin} id="login" className="space-y-4">
-      <div>
+    <form onSubmit={handleLogin} className="space-y-4" dir="rtl">
+      <div className="text-right">
         <label className="block text-sm font-medium text-gray-700">
           אימייל
         </label>
@@ -46,27 +74,39 @@ export default function LoginForm() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring focus:border-blue-500"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring focus:border-blue-500"
+          placeholder="name@example.com"
+          autoComplete="email"
           required
         />
       </div>
 
-      <div>
+      <div className="text-right">
         <label className="block text-sm font-medium text-gray-700">סיסמה</label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring focus:border-blue-500"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring focus:border-blue-500"
+          placeholder="הזן סיסמה"
+          autoComplete="current-password"
           required
         />
       </div>
 
-      {error && <div className="text-red-500 text-sm">{error}</div>}
+      <div className="flex justify-end pt-1">
+        <ReCAPTCHA
+          sitekey={siteKey}
+          onChange={(token) => setRecaptchaToken(token)}
+          onExpired={() => setRecaptchaToken(null)}
+        />
+      </div>
+
+      {error && <div className="text-red-600 text-sm text-right">{error}</div>}
 
       <button
         type="submit"
-        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-60"
         disabled={loading}
       >
         {loading ? "מתחבר..." : "התחבר"}

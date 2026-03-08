@@ -27,7 +27,17 @@ export default function TenantDashboard() {
       const res = await api.get("/api/faults/my");
       setFaults(res.data);
     } catch (err) {
-      setError("לא הצלחנו לטעון את התקלות שלך. ודא שהשרת רץ ושאתה מחובר.");
+      const status = err?.response?.status;
+
+      if (status === 401) {
+        setError("פג תוקף ההתחברות. התחבר מחדש.");
+      } else if (status === 403) {
+        setError(
+          "אין לך הרשאה לצפות בתקלות. ודא שהתפקיד שלך מוגדר כדייר (tenant).",
+        );
+      } else {
+        setError("לא הצלחנו לטעון את התקלות. ודא שהשרת רץ ושאתה מחובר.");
+      }
     } finally {
       setLoading(false);
     }
@@ -115,6 +125,11 @@ export default function TenantDashboard() {
       </div>
 
       <div className="bg-white rounded shadow p-4">
+        {error && (
+          <div className="mb-3 text-red-600 text-sm border border-red-200 bg-red-50 p-2 rounded">
+            {error}
+          </div>
+        )}
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-semibold">התקלות שלי</h2>
           <button

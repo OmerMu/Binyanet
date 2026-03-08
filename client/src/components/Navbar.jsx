@@ -79,7 +79,7 @@ export default function Navbar() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-2">
           <button onClick={() => goAnchor("home")} className={navBtnClass}>
-            בית
+            יצירת קשר
           </button>
           <button onClick={() => goAnchor("about")} className={navBtnClass}>
             אודות
@@ -88,7 +88,7 @@ export default function Navbar() {
             שירותים
           </button>
           <button onClick={() => goAnchor("contact")} className={navBtnClass}>
-            יצירת קשר
+            בית
           </button>
 
           <div className="w-px h-6 bg-gray-200 mx-2" />

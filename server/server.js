@@ -15,6 +15,7 @@ app.use("/api/faults", require("./routes/fault.routes"));
 app.use("/api/system", require("./routes/system.routes"));
 app.use("/api/analytics", require("./routes/analytics.routes"));
 app.use("/api/payments", paymentRoutes);
+app.use("/api/announcements", require("./routes/announcement.routes"));
 // חיבור לדאטהבייס
 mongoose
   .connect(process.env.MONGO_URI)

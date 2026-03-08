@@ -89,34 +89,28 @@ exports.listPendingUsers = async (req, res) => {
 };
 
 exports.approveUser = async (req, res) => {
-  const { id } = req.params;
-  const isApproved = Boolean(req.body.isApproved);
-  const role = req.body.role ? String(req.body.role) : undefined;
-
-  const update = { isApproved };
-
-  if (role) {
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({ message: "Role לא חוקי" });
-    }
-    update.role = role;
-  }
-
-  const user = await User.findByIdAndUpdate(id, update, { new: true }).select(
-    "-password",
-  );
-  return res.json(user);
-};
-exports.approveUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const isApproved = Boolean(req.body.isApproved);
 
-    const user = await User.findByIdAndUpdate(
-      id,
-      { isApproved },
-      { new: true },
-    ).select("-password");
+    const isApproved =
+      req.body.isApproved === undefined ? true : Boolean(req.body.isApproved);
+
+    // אם לא נשלח role, נשתמש ב-requestedRole של המשתמש
+    const requestedRole = req.body.role ? String(req.body.role) : undefined;
+
+    const update = { isApproved };
+
+    if (requestedRole) {
+      if (!allowedRoles.includes(requestedRole)) {
+        return res.status(400).json({ message: "Role לא חוקי" });
+      }
+      update.role = requestedRole;
+    }
+
+    const user = await User.findByIdAndUpdate(id, update, { new: true }).select(
+      "-password",
+    );
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     return res.json(user);
   } catch (err) {

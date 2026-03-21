@@ -328,7 +328,7 @@ export default function CompanyDashboard() {
             {/* KPI - Payments */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               <KpiCard
-                title="סה״כ הכנסות"
+                title="סה״כ תשלומים לועדים"
                 value={`${safeNum(kpi.totalRevenue)} ₪`}
                 subtitle="כל התקופה"
               />
@@ -356,6 +356,11 @@ export default function CompanyDashboard() {
                 title="זמן טיפול ממוצע"
                 value={`${Math.round(safeNum(kpi.avgCloseHours))} שעות`}
                 subtitle="SLA"
+              />
+              <KpiCard
+                title="הכנסות חברת הניהול"
+                value={`${safeNum(kpi.monthRevenue) * 0.1} ₪`}
+                subtitle={data.currentMonth || ""}
               />
             </div>
 

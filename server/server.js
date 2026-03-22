@@ -8,6 +8,7 @@ app.use(express.json());
 
 const paymentRoutes = require("./routes/payment.routes");
 const messageRoutes = require("./routes/message.routes");
+const leadRoutes = require("./routes/lead.routes");
 
 // ראוטים
 app.use("/api/auth", require("./routes/auth.routes"));
@@ -17,6 +18,11 @@ app.use("/api/analytics", require("./routes/analytics.routes"));
 app.use("/api/payments", paymentRoutes);
 app.use("/api/announcements", require("./routes/announcement.routes"));
 app.use("/api/messages", messageRoutes);
+app.use("/api/leads", leadRoutes);
+
+app.get("/", (req, res) => {
+  res.json({ message: "Server is running" });
+});
 // חיבור לדאטהבייס
 mongoose
   .connect(process.env.MONGO_URI)

@@ -9,22 +9,33 @@ const ROLE_OPTIONS = [
   { value: "admin", label: "אדמין" },
 ];
 
+const LEAD_STATUS_OPTIONS = [
+  { value: "new", label: "חדש" },
+  { value: "contacted", label: "נוצר קשר" },
+  { value: "closed", label: "סגור" },
+];
+
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState("home");
 
   const [users, setUsers] = useState([]);
   const [pendingUsers, setPendingUsers] = useState([]);
+  const [leads, setLeads] = useState([]);
 
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingPending, setLoadingPending] = useState(true);
+  const [loadingLeads, setLoadingLeads] = useState(true);
 
   const [usersError, setUsersError] = useState("");
   const [pendingError, setPendingError] = useState("");
+  const [leadsError, setLeadsError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [leadSearch, setLeadSearch] = useState("");
+  const [leadStatusFilter, setLeadStatusFilter] = useState("all");
 
   const [newUser, setNewUser] = useState({
     fullName: "",
@@ -60,6 +71,7 @@ export default function AdminDashboard() {
     if (!user) return;
     loadUsers();
     loadPendingUsers();
+    loadLeads();
   }, [user]);
 
   const loadUsers = async () => {
@@ -89,6 +101,21 @@ export default function AdminDashboard() {
       setPendingError("לא הצלחנו לטעון את המשתמשים הממתינים.");
     } finally {
       setLoadingPending(false);
+    }
+  };
+
+  const loadLeads = async () => {
+    setLoadingLeads(true);
+    setLeadsError("");
+
+    try {
+      const res = await api.get("/api/leads");
+      setLeads(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      setLeads([]);
+      setLeadsError("לא הצלחנו לטעון את הלידים.");
+    } finally {
+      setLoadingLeads(false);
     }
   };
 
@@ -170,6 +197,31 @@ export default function AdminDashboard() {
     }
   };
 
+  const updateLeadStatus = async (leadId, status) => {
+    setSuccessMessage("");
+    try {
+      await api.patch(`/api/leads/${leadId}/status`, { status });
+      setSuccessMessage("סטטוס הליד עודכן בהצלחה.");
+      await loadLeads();
+    } catch (err) {
+      alert(err?.response?.data?.message || "עדכון סטטוס הליד נכשל.");
+    }
+  };
+
+  const deleteLead = async (leadId) => {
+    const confirmDelete = window.confirm("למחוק את הליד?");
+    if (!confirmDelete) return;
+
+    setSuccessMessage("");
+    try {
+      await api.delete(`/api/leads/${leadId}`);
+      setSuccessMessage("הליד נמחק בהצלחה.");
+      await loadLeads();
+    } catch (err) {
+      alert(err?.response?.data?.message || "מחיקת הליד נכשלה.");
+    }
+  };
+
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
       const text =
@@ -180,6 +232,19 @@ export default function AdminDashboard() {
     });
   }, [users, search, roleFilter]);
 
+  const filteredLeads = useMemo(() => {
+    return leads.filter((lead) => {
+      const text =
+        `${lead.fullName || ""} ${lead.phone || ""} ${lead.email || ""} ${lead.buildingSize || ""} ${lead.message || ""}`.toLowerCase();
+
+      const matchesSearch = text.includes(leadSearch.toLowerCase());
+      const matchesStatus =
+        leadStatusFilter === "all" ? true : lead.status === leadStatusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [leads, leadSearch, leadStatusFilter]);
+
   const counts = useMemo(() => {
     return {
       total: users.length,
@@ -188,8 +253,10 @@ export default function AdminDashboard() {
       companies: users.filter((u) => u.role === "company").length,
       committees: users.filter((u) => u.role === "committee").length,
       tenants: users.filter((u) => u.role === "tenant").length,
+      leads: leads.length,
+      newLeads: leads.filter((lead) => lead.status === "new").length,
     };
-  }, [users, pendingUsers]);
+  }, [users, pendingUsers, leads]);
 
   if (!user) return null;
 
@@ -220,6 +287,12 @@ export default function AdminDashboard() {
     </div>
   );
 
+  const leadStatusLabel = (status) => {
+    return (
+      LEAD_STATUS_OPTIONS.find((item) => item.value === status)?.label || status
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 py-6 md:px-6 lg:px-8">
@@ -239,13 +312,15 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-8 gap-4 mb-8">
           {summaryCard("סה״כ משתמשים", counts.total)}
           {summaryCard("ממתינים לאישור", counts.pending)}
           {summaryCard("אדמינים", counts.admins)}
           {summaryCard("חברות", counts.companies)}
           {summaryCard("חברי ועד", counts.committees)}
           {summaryCard("דיירים", counts.tenants)}
+          {summaryCard("סה״כ לידים", counts.leads)}
+          {summaryCard("לידים חדשים", counts.newLeads)}
         </div>
 
         <div className="flex gap-2 flex-wrap mb-8">
@@ -253,6 +328,7 @@ export default function AdminDashboard() {
           {tabButton("users", "ניהול משתמשים")}
           {tabButton("pending", "בקשות ממתינות")}
           {tabButton("create", "הוספת משתמש")}
+          {tabButton("leads", "לידים")}
         </div>
 
         {tab === "home" && (
@@ -286,6 +362,38 @@ export default function AdminDashboard() {
                 >
                   הוסף משתמש חדש
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTab("leads")}
+                  className="rounded-xl bg-white border border-slate-300 px-5 py-3 font-medium hover:bg-slate-50 transition"
+                >
+                  עבור ללידים
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">
+                מצב לידים
+              </h2>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span>לידים חדשים</span>
+                  <span className="font-bold">{counts.newLeads}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span>נוצר קשר</span>
+                  <span className="font-bold">
+                    {leads.filter((lead) => lead.status === "contacted").length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>סגורים</span>
+                  <span className="font-bold">
+                    {leads.filter((lead) => lead.status === "closed").length}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -655,6 +763,143 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {tab === "leads" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-5">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">לידים</h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  כל הפניות שהושארו בטופס האתר.
+                </p>
+              </div>
+
+              <div className="flex gap-3 flex-wrap">
+                <input
+                  value={leadSearch}
+                  onChange={(e) => setLeadSearch(e.target.value)}
+                  placeholder="חיפוש לפי שם / טלפון / אימייל"
+                  className="rounded-xl border border-slate-300 px-3 py-2.5 w-[260px]"
+                />
+
+                <select
+                  value={leadStatusFilter}
+                  onChange={(e) => setLeadStatusFilter(e.target.value)}
+                  className="rounded-xl border border-slate-300 px-3 py-2.5"
+                >
+                  <option value="all">כל הסטטוסים</option>
+                  {LEAD_STATUS_OPTIONS.map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={loadLeads}
+                  className="rounded-xl bg-blue-600 text-white px-4 py-2.5 hover:bg-blue-700"
+                >
+                  רענון
+                </button>
+              </div>
+            </div>
+
+            {leadsError && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3">
+                {leadsError}
+              </div>
+            )}
+
+            {loadingLeads ? (
+              <div className="text-slate-500">טוען לידים...</div>
+            ) : filteredLeads.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-slate-500">
+                אין לידים להצגה.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1300px] text-right">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-500 text-sm">
+                      <th className="py-3 px-2">שם מלא</th>
+                      <th className="py-3 px-2">טלפון</th>
+                      <th className="py-3 px-2">אימייל</th>
+                      <th className="py-3 px-2">גודל בניין</th>
+                      <th className="py-3 px-2">הודעה</th>
+                      <th className="py-3 px-2">סטטוס</th>
+                      <th className="py-3 px-2">נוצר בתאריך</th>
+                      <th className="py-3 px-2">פעולות</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLeads.map((lead) => (
+                      <tr key={lead._id} className="border-b border-slate-100">
+                        <td className="py-3 px-2">{lead.fullName || "—"}</td>
+                        <td className="py-3 px-2">{lead.phone || "—"}</td>
+                        <td className="py-3 px-2">{lead.email || "—"}</td>
+                        <td className="py-3 px-2">
+                          {lead.buildingSize || "—"}
+                        </td>
+                        <td className="py-3 px-2 max-w-[300px]">
+                          <div className="whitespace-pre-wrap break-words">
+                            {lead.message || "—"}
+                          </div>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm">
+                            {leadStatusLabel(lead.status)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2">
+                          {lead.createdAt
+                            ? new Date(lead.createdAt).toLocaleString("he-IL")
+                            : "—"}
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="flex gap-2 flex-wrap">
+                            <select
+                              defaultValue={lead.status || "new"}
+                              id={`lead-status-${lead._id}`}
+                              className="rounded-xl border border-slate-300 px-3 py-2"
+                            >
+                              {LEAD_STATUS_OPTIONS.map((status) => (
+                                <option key={status.value} value={status.value}>
+                                  {status.label}
+                                </option>
+                              ))}
+                            </select>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const selectedStatus = document.getElementById(
+                                  `lead-status-${lead._id}`,
+                                )?.value;
+                                updateLeadStatus(lead._id, selectedStatus);
+                              }}
+                              className="rounded-xl bg-slate-900 text-white px-3 py-2 text-sm hover:bg-black"
+                            >
+                              שמור סטטוס
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => deleteLead(lead._id)}
+                              className="rounded-xl bg-red-600 text-white px-3 py-2 text-sm hover:bg-red-700"
+                            >
+                              מחק
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>

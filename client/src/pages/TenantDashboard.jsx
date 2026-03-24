@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
@@ -40,6 +40,7 @@ export default function TenantDashboard() {
   const [messageSuccess, setMessageSuccess] = useState("");
 
   const navigate = useNavigate();
+  const handledPayPalRef = useRef(false);
 
   const getReadAnnouncementIds = () => {
     try {
@@ -216,6 +217,46 @@ export default function TenantDashboard() {
     setAnnouncementPopup(announcement);
   };
 
+
+  const handlePayPalReturn = async () => {
+    if (handledPayPalRef.current) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const paypalState = params.get("paypal");
+    const orderId = params.get("token");
+
+    if (paypalState === "cancel") {
+      handledPayPalRef.current = true;
+      setPaymentError("תשלום PayPal בוטל על ידי המשתמש.");
+      navigate("/tenant", { replace: true });
+      return;
+    }
+
+    if (!orderId) return;
+
+    handledPayPalRef.current = true;
+    setSubmittingPayment(true);
+    setPaymentError("");
+    setPaymentSuccess("");
+
+    try {
+      await api.get(`/api/payments/paypal/capture?orderId=${orderId}`);
+      setPaymentAmount("");
+      setPaymentCity("");
+      setPaymentMethod("credit");
+      setPaymentSuccess("תשלום PayPal הושלם בהצלחה.");
+      navigate("/tenant", { replace: true });
+      await loadMyPayments();
+    } catch (err) {
+      setPaymentError(
+        err?.response?.data?.message || "אישור תשלום PayPal נכשל.",
+      );
+      navigate("/tenant", { replace: true });
+    } finally {
+      setSubmittingPayment(false);
+    }
+  };
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) {
@@ -243,6 +284,7 @@ export default function TenantDashboard() {
     loadMyPayments();
     loadBuildingMessages();
     loadAnnouncements();
+    handlePayPalReturn();
   }, [navigate]);
 
   const createFault = async (e) => {
@@ -271,20 +313,31 @@ export default function TenantDashboard() {
     setPaymentSuccess("");
 
     try {
-      await api.post("/api/payments", {
+      const res = await api.post("/api/payments", {
         amount: Number(paymentAmount),
         city: paymentCity || "לא ידוע",
         monthKey: getCurrentMonthKey(),
         paymentMethod,
       });
 
+      if (paymentMethod === "paypal" && res?.data?.approvalUrl) {
+        window.location.href = res.data.approvalUrl;
+        return;
+      }
+
       setPaymentAmount("");
       setPaymentCity("");
       setPaymentMethod("credit");
-      setPaymentSuccess("התשלום נרשם בהצלחה.");
+      setPaymentSuccess(
+        paymentMethod === "bit"
+          ? "תשלום Bit נרשם בהצלחה."
+          : "התשלום נרשם בהצלחה.",
+      );
       await loadMyPayments();
     } catch (err) {
-      setPaymentError("ביצוע התשלום נכשל. בדוק שהסכום תקין.");
+      setPaymentError(
+        err?.response?.data?.message || "ביצוע התשלום נכשל. בדוק שהסכום תקין.",
+      );
     } finally {
       setSubmittingPayment(false);
     }

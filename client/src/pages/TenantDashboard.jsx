@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
@@ -42,40 +42,46 @@ export default function TenantDashboard() {
   const navigate = useNavigate();
   const handledPayPalRef = useRef(false);
 
-  const getReadAnnouncementIds = () => {
+  const getReadAnnouncementIds = useCallback(() => {
     try {
       return JSON.parse(localStorage.getItem("readAnnouncementIds") || "[]");
     } catch {
       return [];
     }
-  };
+  }, []);
 
-  const setReadAnnouncementIds = (ids) => {
+  const setReadAnnouncementIds = useCallback((ids) => {
     localStorage.setItem("readAnnouncementIds", JSON.stringify(ids));
-  };
+  }, []);
 
-  const markAnnouncementAsRead = (announcementId) => {
-    if (!announcementId) return;
+  const markAnnouncementAsRead = useCallback(
+    (announcementId) => {
+      if (!announcementId) return;
 
-    const readIds = getReadAnnouncementIds();
-    if (!readIds.includes(announcementId)) {
-      setReadAnnouncementIds([...readIds, announcementId]);
-    }
+      const readIds = getReadAnnouncementIds();
+      if (!readIds.includes(announcementId)) {
+        setReadAnnouncementIds([...readIds, announcementId]);
+      }
 
-    if (announcementPopup?._id === announcementId) {
-      setAnnouncementPopup(null);
-    }
-  };
+      if (announcementPopup?._id === announcementId) {
+        setAnnouncementPopup(null);
+      }
+    },
+    [announcementPopup, getReadAnnouncementIds, setReadAnnouncementIds],
+  );
 
-  const markAllAnnouncementsAsRead = () => {
+  const markAllAnnouncementsAsRead = useCallback(() => {
     const ids = announcements.map((item) => item._id).filter(Boolean);
     setReadAnnouncementIds(ids);
     setAnnouncementPopup(null);
-  };
+  }, [announcements, setReadAnnouncementIds]);
 
-  const isAnnouncementRead = (announcementId) => {
-    return getReadAnnouncementIds().includes(announcementId);
-  };
+  const isAnnouncementRead = useCallback(
+    (announcementId) => {
+      return getReadAnnouncementIds().includes(announcementId);
+    },
+    [getReadAnnouncementIds],
+  );
 
   const statusLabel = (status) => {
     if (status === "open") return "פתוחה";
@@ -112,7 +118,7 @@ export default function TenantDashboard() {
     return `${year}-${month}`;
   };
 
-  const loadMyFaults = async () => {
+  const loadMyFaults = useCallback(async () => {
     setLoadingFaults(true);
     setFaultError("");
 
@@ -131,9 +137,9 @@ export default function TenantDashboard() {
     } finally {
       setLoadingFaults(false);
     }
-  };
+  }, []);
 
-  const loadMyPayments = async () => {
+  const loadMyPayments = useCallback(async () => {
     setLoadingPayments(true);
     setPaymentError("");
 
@@ -152,9 +158,9 @@ export default function TenantDashboard() {
     } finally {
       setLoadingPayments(false);
     }
-  };
+  }, []);
 
-  const loadBuildingMessages = async () => {
+  const loadBuildingMessages = useCallback(async () => {
     setLoadingMessages(true);
     setMessageError("");
 
@@ -173,9 +179,9 @@ export default function TenantDashboard() {
     } finally {
       setLoadingMessages(false);
     }
-  };
+  }, []);
 
-  const loadAnnouncements = async () => {
+  const loadAnnouncements = useCallback(async () => {
     setLoadingAnnouncements(true);
     setAnnouncementError("");
 
@@ -202,7 +208,7 @@ export default function TenantDashboard() {
     } finally {
       setLoadingAnnouncements(false);
     }
-  };
+  }, [getReadAnnouncementIds]);
 
   const closeAnnouncementPopup = () => {
     if (announcementPopup?._id) {
@@ -217,8 +223,7 @@ export default function TenantDashboard() {
     setAnnouncementPopup(announcement);
   };
 
-
-  const handlePayPalReturn = async () => {
+  const handlePayPalReturn = useCallback(async () => {
     if (handledPayPalRef.current) return;
 
     const params = new URLSearchParams(window.location.search);
@@ -255,7 +260,7 @@ export default function TenantDashboard() {
     } finally {
       setSubmittingPayment(false);
     }
-  };
+  }, [loadMyPayments, navigate]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -285,7 +290,14 @@ export default function TenantDashboard() {
     loadBuildingMessages();
     loadAnnouncements();
     handlePayPalReturn();
-  }, [navigate]);
+  }, [
+    navigate,
+    loadMyFaults,
+    loadMyPayments,
+    loadBuildingMessages,
+    loadAnnouncements,
+    handlePayPalReturn,
+  ]);
 
   const createFault = async (e) => {
     e.preventDefault();
@@ -381,7 +393,7 @@ export default function TenantDashboard() {
 
   const unreadAnnouncementsCount = useMemo(
     () => announcements.filter((item) => !isAnnouncementRead(item._id)).length,
-    [announcements],
+    [announcements, isAnnouncementRead],
   );
 
   const latestPayment = payments.length > 0 ? payments[0] : null;

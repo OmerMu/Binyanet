@@ -7,6 +7,7 @@ export default function Navbar() {
 
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
   let user = null;
   try {
     user = JSON.parse(localStorage.getItem("user") || "null");
@@ -24,7 +25,6 @@ export default function Navbar() {
   const goAnchor = (id) => {
     setOpen(false);
 
-    // אם לא בדף הבית, ננווט אליו ואז נגלול
     if (location.pathname !== "/") {
       navigate(`/#${id}`);
       setTimeout(() => {
@@ -63,7 +63,6 @@ export default function Navbar() {
       ].join(" ")}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
         <Link to="/" className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-extrabold">
             B
@@ -74,7 +73,6 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-2">
           <button onClick={() => goAnchor("home")} className={navBtnClass}>
             בית
@@ -93,7 +91,6 @@ export default function Navbar() {
 
           {!user ? (
             <>
-              {/* Leave details (scroll to contact) */}
               <button
                 onClick={() => goAnchor("contact")}
                 className="px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition font-semibold"
@@ -101,7 +98,6 @@ export default function Navbar() {
                 השארת פרטים
               </button>
 
-              {/* Login */}
               <button
                 onClick={() => {
                   setOpen(false);
@@ -112,7 +108,6 @@ export default function Navbar() {
                 כניסה
               </button>
 
-              {/* Register */}
               <button
                 onClick={() => {
                   setOpen(false);
@@ -125,7 +120,6 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              {/* Personal area */}
               <button
                 onClick={goArea}
                 className="px-4 py-2 rounded-lg bg-emerald-700 text-white font-semibold hover:bg-emerald-800 transition"
@@ -133,7 +127,6 @@ export default function Navbar() {
                 האזור האישי
               </button>
 
-              {/* Logout */}
               <button
                 onClick={logout}
                 className="px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
@@ -144,7 +137,6 @@ export default function Navbar() {
           )}
         </nav>
 
-        {/* Mobile */}
         <button
           className="md:hidden w-10 h-10 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center justify-center"
           onClick={() => setOpen((v) => !v)}
@@ -154,7 +146,6 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       {open && (
         <div className="md:hidden border-t border-gray-100 bg-white">
           <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-2 text-right">

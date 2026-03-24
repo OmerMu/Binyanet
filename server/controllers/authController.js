@@ -1,6 +1,6 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
-
+const crypto = require("crypto");
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
@@ -103,5 +103,83 @@ exports.login = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Login failed", error: error.message });
+  }
+};
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(200).json({ message: "אם המייל קיים נשלח קישור" });
+    }
+
+    // יצירת token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    // שמירת hash
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 דקות
+
+    await user.save();
+
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+
+    // שליחת מייל
+    const nodemailer = require("nodemailer");
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      to: user.email,
+      subject: "איפוס סיסמה",
+      html: `
+        <h3>איפוס סיסמה</h3>
+        <p>לחץ על הקישור הבא:</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+      `,
+    });
+
+    res.json({ message: "נשלח קישור לאיפוס סיסמה" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "טוקן לא תקף או פג תוקף" });
+    }
+
+    user.password = password;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+
+    await user.save();
+
+    res.json({ message: "סיסמה עודכנה בהצלחה" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

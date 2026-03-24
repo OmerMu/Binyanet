@@ -8,24 +8,42 @@ const paymentSchema = new mongoose.Schema(
       required: true,
     },
 
-    // כרגע פשוט: משתמשים ב-buildingId שיש אצלך ב-Fault (String).
-    // בהמשך נעשה Building מודל אמיתי.
     buildingId: { type: String, default: "default-building" },
 
     city: { type: String, default: "לא ידוע", trim: true },
 
     amount: { type: Number, required: true, min: 0 },
 
-    // לדוגמה "2026-02" כדי לדעת שזה תשלום חודש פברואר 2026
     monthKey: { type: String, required: true },
+
+    provider: {
+      type: String,
+      enum: ["bit", "paypal", "applepay", "googlepay", "credit"],
+      default: "credit",
+    },
+
+    externalPaymentId: {
+      type: String,
+      default: null,
+    },
+
+    approvalUrl: {
+      type: String,
+      default: null,
+    },
+
+    paidAt: {
+      type: Date,
+      default: null,
+    },
 
     status: {
       type: String,
-      enum: ["paid", "refunded"],
-      default: "paid",
+      enum: ["pending", "paid", "refunded", "failed", "cancelled"],
+      default: "pending",
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Payment", paymentSchema);

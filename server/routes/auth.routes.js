@@ -5,7 +5,9 @@ const router = express.Router();
 const authController = require("../controllers/authController");
 
 router.post("/login", authController.login);
-router.post("/register", authController.register); // הוספת ראוט קבוע להרשמה
+router.post("/register", authController.register);
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/reset-password/:token", authController.resetPassword);
 const { protect } = require("../middleware/authMiddleware");
 
 router.get("/me", protect, (req, res) => {

@@ -114,6 +114,8 @@ exports.approveUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    await sendApprovalEmail(user);
+
     return res.json({
       message: "המשתמש אושר בהצלחה",
       user,

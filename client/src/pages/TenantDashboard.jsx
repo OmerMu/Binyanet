@@ -16,7 +16,8 @@ export default function TenantDashboard() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-
+  const [faultImage, setFaultImage] = useState(null);
+  const [faultImagePreview, setFaultImagePreview] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentCity, setPaymentCity] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("credit");
@@ -100,10 +101,112 @@ export default function TenantDashboard() {
     return "bg-gray-50 text-gray-700 border border-gray-200";
   };
 
-  const paymentStatusLabel = (status) => {
-    if (status === "paid") return "שולם";
-    if (status === "refunded") return "זוכה";
-    return status || "לא ידוע";
+  const paymentStatusLabel = (s) => {
+    if (s === "paid") return "שולם";
+    if (s === "pending") return "בתהליך";
+    if (s === "failed" || s === "cancelled") return "לא שולם";
+    if (s === "refunded") return "זוכה";
+    return s || "לא ידוע";
+  };
+
+  const paymentMethodLabel = (method) => {
+    if (method === "paypal") return "PayPal";
+    if (method === "applepay") return "Apple Pay";
+    if (method === "googlepay") return "Google Pay";
+    if (method === "bit") return "Bit";
+    if (method === "credit") return "כרטיס אשראי";
+    return method || "לא ידוע";
+  };
+
+  const paymentMethodIcon = (method) => {
+    if (method === "paypal") {
+      return (
+        <img
+          src="https://www.paypalobjects.com/webstatic/icon/pp258.png"
+          alt="PayPal"
+          className="w-5 h-5 object-contain"
+        />
+      );
+    }
+
+    if (method === "applepay") {
+      return (
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg"
+          alt="Apple Pay"
+          className="w-5 h-5 object-contain"
+        />
+      );
+    }
+
+    if (method === "googlepay") {
+      return (
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg"
+          alt="Google Pay"
+          className="w-5 h-5 object-contain"
+        />
+      );
+    }
+
+    if (method === "bit") {
+      return (
+        <span className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
+          bit
+        </span>
+      );
+    }
+
+    if (method === "credit") {
+      return (
+        <span className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+          ₪
+        </span>
+      );
+    }
+
+    return (
+      <span className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+        ?
+      </span>
+    );
+  };
+  const paymentMethodButtonClass = (method) => {
+    const isActive = paymentMethod === method;
+
+    if (isActive) {
+      return "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md scale-[1.02]";
+    }
+
+    return "border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/60 hover:text-emerald-700 hover:shadow-sm";
+  };
+
+  const paymentMethodDescription = (method) => {
+    if (method === "paypal") return "תשלום מאובטח דרך PayPal";
+    if (method === "applepay") return "תשלום מהיר דרך Apple Pay";
+    if (method === "googlepay") return "תשלום מהיר דרך Google Pay";
+    if (method === "bit") return "תשלום מהיר באמצעות Bit";
+    if (method === "credit") return "בקרוב";
+    return "";
+  };
+  const paymentStatusClass = (s) => {
+    if (s === "paid") {
+      return "border-green-200 bg-green-50 text-green-700";
+    }
+
+    if (s === "pending") {
+      return "border-orange-200 bg-orange-50 text-orange-700";
+    }
+
+    if (s === "failed" || s === "cancelled") {
+      return "border-red-200 bg-red-50 text-red-700";
+    }
+
+    if (s === "refunded") {
+      return "border-slate-200 bg-slate-50 text-slate-700";
+    }
+
+    return "border-slate-200 bg-slate-50 text-slate-700";
   };
 
   const formatDate = (value) => {
@@ -299,6 +402,38 @@ export default function TenantDashboard() {
     handlePayPalReturn,
   ]);
 
+  const uploadFaultImageToCloudinary = async (file) => {
+    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      throw new Error("Cloudinary env vars are missing in client .env");
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data?.error?.message || "Cloudinary upload failed");
+    }
+
+    return {
+      imageUrl: data.secure_url || "",
+      imagePublicId: data.public_id || "",
+    };
+  };
+
   const createFault = async (e) => {
     e.preventDefault();
     setSubmittingFault(true);
@@ -306,13 +441,34 @@ export default function TenantDashboard() {
     setFaultSuccess("");
 
     try {
-      await api.post("/api/faults", { title, description });
+      let imagePayload = {
+        imageUrl: "",
+        imagePublicId: "",
+      };
+
+      if (faultImage) {
+        imagePayload = await uploadFaultImageToCloudinary(faultImage);
+      }
+
+      await api.post("/api/faults", {
+        title,
+        description,
+        imageUrl: imagePayload.imageUrl,
+        imagePublicId: imagePayload.imagePublicId,
+      });
+
       setTitle("");
       setDescription("");
+      setFaultImage(null);
+      setFaultImagePreview("");
       setFaultSuccess("התקלה נפתחה בהצלחה.");
       await loadMyFaults();
     } catch (err) {
-      setFaultError("פתיחת תקלה נכשלה. בדוק שהכותרת והתיאור מלאים.");
+      setFaultError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "פתיחת תקלה נכשלה. בדוק שהכותרת, התיאור והתמונה תקינים.",
+      );
     } finally {
       setSubmittingFault(false);
     }
@@ -557,6 +713,37 @@ export default function TenantDashboard() {
                     placeholder="תאר בקצרה מה הבעיה ומתי התחילה..."
                     required
                   />
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-slate-700">
+                      תמונה לתקלה (אופציונלי)
+                    </label>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setFaultImage(file);
+
+                        if (file) {
+                          setFaultImagePreview(URL.createObjectURL(file));
+                        } else {
+                          setFaultImagePreview("");
+                        }
+                      }}
+                    />
+
+                    {faultImagePreview && (
+                      <div className="mt-3">
+                        <img
+                          src={faultImagePreview}
+                          alt="תצוגה מקדימה"
+                          className="w-full max-h-56 object-cover rounded-xl border border-slate-200"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {faultError && (
@@ -625,30 +812,60 @@ export default function TenantDashboard() {
                     אמצעי תשלום
                   </label>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[
-                      { value: "bit", label: "Bit" },
                       { value: "paypal", label: "PayPal" },
                       { value: "applepay", label: "Apple Pay" },
                       { value: "googlepay", label: "Google Pay" },
-                      { value: "credit", label: "אשראי" },
+                      { value: "bit", label: "Bit" },
+                      { value: "credit", label: "כרטיס אשראי" },
                     ].map((method) => (
                       <button
                         key={method.value}
                         type="button"
-                        onClick={() => setPaymentMethod(method.value)}
-                        className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
-                          paymentMethod === method.value
-                            ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                            : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                        }`}
+                        onClick={() => {
+                          setPaymentMethod(method.value);
+
+                          if (method.value === "credit") {
+                            setPaymentError(
+                              "תשלום בכרטיס אשראי עדיין לא מחובר בצורה מאובטחת.",
+                            );
+                          } else {
+                            setPaymentError("");
+                          }
+                        }}
+                        className={`group w-full rounded-2xl border px-4 py-3 text-right transition-all duration-200 ${paymentMethodButtonClass(
+                          method.value,
+                        )}`}
                       >
-                        {method.label}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white border border-slate-200 shadow-sm">
+                              {paymentMethodIcon(method.value)}
+                            </div>
+
+                            <div className="text-right">
+                              <div className="text-sm font-semibold">
+                                {method.label}
+                              </div>
+                              <div className="text-xs text-slate-500 group-hover:text-emerald-700 transition">
+                                {paymentMethodDescription(method.value)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div
+                            className={`h-5 w-5 rounded-full border-2 transition ${
+                              paymentMethod === method.value
+                                ? "border-emerald-600 bg-emerald-600 shadow-[inset_0_0_0_3px_white]"
+                                : "border-slate-300 bg-white"
+                            }`}
+                          />
+                        </div>
                       </button>
                     ))}
                   </div>
                 </div>
-
                 {paymentError && (
                   <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
                     {paymentError}
@@ -664,9 +881,19 @@ export default function TenantDashboard() {
                 <button
                   type="submit"
                   disabled={submittingPayment}
-                  className="w-full rounded-xl bg-slate-900 text-white py-3 font-medium hover:bg-slate-800 transition disabled:opacity-60"
+                  className="w-full rounded-2xl bg-slate-900 text-white py-3.5 font-semibold shadow-sm hover:bg-slate-800 hover:shadow-md active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {submittingPayment ? "מעבד תשלום..." : "שלם ועד"}
+                  {submittingPayment
+                    ? "מעבד תשלום..."
+                    : paymentMethod === "paypal"
+                      ? "המשך ל-PayPal"
+                      : paymentMethod === "bit"
+                        ? "שלם באמצעות Bit"
+                        : paymentMethod === "applepay"
+                          ? "שלם באמצעות Apple Pay"
+                          : paymentMethod === "googlepay"
+                            ? "שלם באמצעות Google Pay"
+                            : "שלם ועד"}
                 </button>
               </form>
             </div>
@@ -910,6 +1137,15 @@ export default function TenantDashboard() {
                           <p className="text-sm text-slate-600 mt-1 whitespace-pre-line">
                             {fault.description}
                           </p>
+                          {fault.imageUrl && (
+                            <div className="mt-3">
+                              <img
+                                src={fault.imageUrl}
+                                alt={fault.title}
+                                className="w-full max-w-sm rounded-xl border border-slate-200 object-cover"
+                              />
+                            </div>
+                          )}
                         </div>
 
                         <span
@@ -1007,6 +1243,7 @@ export default function TenantDashboard() {
                         <th className="py-3 px-2 font-medium">חודש</th>
                         <th className="py-3 px-2 font-medium">סכום</th>
                         <th className="py-3 px-2 font-medium">עיר</th>
+                        <th className="py-3 px-2">אופן תשלום</th>
                         <th className="py-3 px-2 font-medium">סטטוס</th>
                         <th className="py-3 px-2 font-medium">תאריך תשלום</th>
                       </tr>
@@ -1020,19 +1257,36 @@ export default function TenantDashboard() {
                           <td className="py-3 px-2">
                             {payment.monthKey || "-"}
                           </td>
+
                           <td className="py-3 px-2 font-medium">
                             ₪
                             {Number(payment.amount || 0).toLocaleString(
                               "he-IL",
                             )}
                           </td>
+
                           <td className="py-3 px-2">{payment.city || "-"}</td>
+
                           <td className="py-3 px-2">
-                            <span className="inline-flex rounded-full border border-green-200 bg-green-50 text-green-700 px-3 py-1 text-sm">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm">
+                              {paymentMethodIcon(payment.provider)}
+                              <span>
+                                {paymentMethodLabel(payment.provider)}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-2">
+                            <span
+                              className={`inline-flex rounded-full border px-3 py-1 text-sm ${paymentStatusClass(
+                                payment.status,
+                              )}`}
+                            >
                               {paymentStatusLabel(payment.status)}
                             </span>
                           </td>
-                          <td className="py-3 px-2">
+
+                          <td className="py-3 px-2 text-sm text-slate-600">
                             {formatDate(payment.createdAt)}
                           </td>
                         </tr>
@@ -1043,13 +1297,24 @@ export default function TenantDashboard() {
               )}
 
               {latestPayment && (
-                <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-4">
-                  <p className="text-sm text-slate-500 mb-1">תשלום אחרון</p>
-                  <p className="text-slate-900 font-medium">
-                    ₪{Number(latestPayment.amount || 0).toLocaleString("he-IL")}{" "}
-                    | {latestPayment.monthKey} |{" "}
-                    {formatDate(latestPayment.createdAt)}
-                  </p>
+                <div className="mt-4 rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-sm text-slate-500 mb-3">תשלום אחרון</p>
+
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div className="text-slate-900 font-medium">
+                      ₪
+                      {Number(latestPayment.amount || 0).toLocaleString(
+                        "he-IL",
+                      )}{" "}
+                      | {latestPayment.monthKey} |{" "}
+                      {formatDate(latestPayment.createdAt)}
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm">
+                      {paymentMethodIcon(latestPayment.provider)}
+                      <span>{paymentMethodLabel(latestPayment.provider)}</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

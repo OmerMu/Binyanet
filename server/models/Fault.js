@@ -30,11 +30,10 @@ const FaultSchema = new mongoose.Schema(
       default: null,
     },
     adminNote: { type: String, default: "" },
-
-    // ✅ חדש
+    imageUrl: { type: String, default: "" },
+    imagePublicId: { type: String, default: "" },
     history: { type: [FaultHistorySchema], default: [] },
   },
-
   { timestamps: true },
 );
 

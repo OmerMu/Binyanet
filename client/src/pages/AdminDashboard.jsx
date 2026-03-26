@@ -11,8 +11,8 @@ const ROLE_OPTIONS = [
 
 const LEAD_STATUS_OPTIONS = [
   { value: "new", label: "חדש" },
-  { value: "contacted", label: "נוצר קשר" },
-  { value: "closed", label: "סגור" },
+  { value: "in_progress", label: "בטיפול" },
+  { value: "done", label: "סיום טיפול" },
 ];
 
 export default function AdminDashboard() {
@@ -208,20 +208,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const deleteLead = async (leadId) => {
-    const confirmDelete = window.confirm("למחוק את הליד?");
-    if (!confirmDelete) return;
-
-    setSuccessMessage("");
-    try {
-      await api.delete(`/api/leads/${leadId}`);
-      setSuccessMessage("הליד נמחק בהצלחה.");
-      await loadLeads();
-    } catch (err) {
-      alert(err?.response?.data?.message || "מחיקת הליד נכשלה.");
-    }
-  };
-
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
       const text =
@@ -292,6 +278,21 @@ export default function AdminDashboard() {
       LEAD_STATUS_OPTIONS.find((item) => item.value === status)?.label || status
     );
   };
+  const leadStatusClass = (status) => {
+    if (status === "new") {
+      return "bg-red-100 text-red-700 border border-red-200";
+    }
+
+    if (status === "in_progress") {
+      return "bg-blue-100 text-blue-700 border border-blue-200";
+    }
+
+    if (status === "done") {
+      return "bg-green-100 text-green-700 border border-green-200";
+    }
+
+    return "bg-slate-100 text-slate-700 border border-slate-200";
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800" dir="rtl">
@@ -323,75 +324,84 @@ export default function AdminDashboard() {
           {summaryCard("לידים חדשים", counts.newLeads)}
         </div>
 
-        <div className="flex gap-2 flex-wrap mb-8">
+        <div className="flex flex-wrap gap-3 mb-8">
           {tabButton("home", "דף הבית")}
-          {tabButton("users", "ניהול משתמשים")}
-          {tabButton("pending", "בקשות ממתינות")}
-          {tabButton("create", "הוספת משתמש")}
+          {tabButton("pending", "ממתינים לאישור")}
+          {tabButton("users", "משתמשים")}
+          {tabButton("create", "יצירת משתמש")}
           {tabButton("leads", "לידים")}
         </div>
 
         {tab === "home" && (
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                פעולות מהירות
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:col-span-2">
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">
+                סקירה מהירה
               </h2>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <button
                   type="button"
                   onClick={() => setTab("pending")}
-                  className="rounded-xl bg-emerald-600 text-white px-5 py-3 font-medium hover:bg-emerald-700 transition"
+                  className="text-right rounded-2xl border border-slate-200 bg-slate-50 p-5 hover:bg-slate-100 transition"
                 >
-                  עבור לבקשות ממתינות
+                  <div className="text-sm text-slate-500">ממתינים לאישור</div>
+                  <div className="text-3xl font-bold text-slate-900 mt-2">
+                    {pendingUsers.length}
+                  </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setTab("users")}
-                  className="rounded-xl bg-white border border-slate-300 px-5 py-3 font-medium hover:bg-slate-50 transition"
+                  className="text-right rounded-2xl border border-slate-200 bg-slate-50 p-5 hover:bg-slate-100 transition"
                 >
-                  עבור לניהול משתמשים
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTab("create")}
-                  className="rounded-xl bg-white border border-slate-300 px-5 py-3 font-medium hover:bg-slate-50 transition"
-                >
-                  הוסף משתמש חדש
+                  <div className="text-sm text-slate-500">משתמשים פעילים</div>
+                  <div className="text-3xl font-bold text-slate-900 mt-2">
+                    {users.length}
+                  </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setTab("leads")}
-                  className="rounded-xl bg-white border border-slate-300 px-5 py-3 font-medium hover:bg-slate-50 transition"
+                  className="text-right rounded-2xl border border-slate-200 bg-slate-50 p-5 hover:bg-slate-100 transition"
                 >
-                  עבור ללידים
+                  <div className="text-sm text-slate-500">לידים מהאתר</div>
+                  <div className="text-3xl font-bold text-slate-900 mt-2">
+                    {leads.length}
+                  </div>
                 </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                מצב לידים
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">
+                סטטוס לידים
               </h2>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span>לידים חדשים</span>
-                  <span className="font-bold">{counts.newLeads}</span>
-                </div>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span>נוצר קשר</span>
-                  <span className="font-bold">
-                    {leads.filter((lead) => lead.status === "contacted").length}
+
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3 flex items-center justify-between">
+                  <span>חדשים</span>
+                  <span className="font-bold text-slate-900">
+                    {leads.filter((lead) => lead.status === "new").length}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span>סגורים</span>
-                  <span className="font-bold">
-                    {leads.filter((lead) => lead.status === "closed").length}
+
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3 flex items-center justify-between">
+                  <span>בטיפול</span>
+                  <span className="font-bold text-slate-900">
+                    {
+                      leads.filter((lead) => lead.status === "in_progress")
+                        .length
+                    }
+                  </span>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3 flex items-center justify-between">
+                  <span>סיום טיפול</span>
+                  <span className="font-bold text-slate-900">
+                    {leads.filter((lead) => lead.status === "done").length}
                   </span>
                 </div>
               </div>
@@ -401,13 +411,13 @@ export default function AdminDashboard() {
 
         {tab === "pending" && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-            <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-xl font-semibold text-slate-900">
                   משתמשים ממתינים לאישור
                 </h2>
                 <p className="text-sm text-slate-500 mt-1">
-                  אישור משתמשים חדשים ומתן הרשאה מתאימה.
+                  כאן ניתן לאשר משתמשים חדשים ולבחור את התפקיד שלהם.
                 </p>
               </div>
 
@@ -416,7 +426,7 @@ export default function AdminDashboard() {
                 onClick={loadPendingUsers}
                 className="rounded-xl bg-blue-600 text-white px-4 py-2.5 hover:bg-blue-700"
               >
-                רענון
+                רענן
               </button>
             </div>
 
@@ -427,10 +437,10 @@ export default function AdminDashboard() {
             )}
 
             {loadingPending ? (
-              <div className="text-slate-500">טוען משתמשים...</div>
+              <div className="text-slate-500">טוען משתמשים ממתינים...</div>
             ) : pendingUsers.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-slate-500">
-                אין כרגע משתמשים שממתינים לאישור.
+                אין משתמשים ממתינים כרגע.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -573,43 +583,27 @@ export default function AdminDashboard() {
                       <th className="py-3 px-2">אימייל</th>
                       <th className="py-3 px-2">טלפון</th>
                       <th className="py-3 px-2">תפקיד</th>
-                      <th className="py-3 px-2">מאושר</th>
                       <th className="py-3 px-2">נוצר בתאריך</th>
-                      <th className="py-3 px-2">שינוי תפקיד</th>
-                      <th className="py-3 px-2">מחיקה</th>
+                      <th className="py-3 px-2">פעולות</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((managedUser) => (
-                      <tr
-                        key={managedUser._id}
-                        className="border-b border-slate-100"
-                      >
+                    {filteredUsers.map((u) => (
+                      <tr key={u._id} className="border-b border-slate-100">
+                        <td className="py-3 px-2">{u.fullName || "—"}</td>
+                        <td className="py-3 px-2">{u.email || "—"}</td>
+                        <td className="py-3 px-2">{u.phone || "—"}</td>
+                        <td className="py-3 px-2">{u.role || "—"}</td>
                         <td className="py-3 px-2">
-                          {managedUser.fullName || "—"}
-                        </td>
-                        <td className="py-3 px-2">
-                          {managedUser.email || "—"}
-                        </td>
-                        <td className="py-3 px-2">
-                          {managedUser.phone || "—"}
-                        </td>
-                        <td className="py-3 px-2">{managedUser.role || "—"}</td>
-                        <td className="py-3 px-2">
-                          {managedUser.isApproved ? "כן" : "לא"}
-                        </td>
-                        <td className="py-3 px-2">
-                          {managedUser.createdAt
-                            ? new Date(managedUser.createdAt).toLocaleString(
-                                "he-IL",
-                              )
+                          {u.createdAt
+                            ? new Date(u.createdAt).toLocaleString("he-IL")
                             : "—"}
                         </td>
                         <td className="py-3 px-2">
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
                             <select
-                              defaultValue={managedUser.role || "tenant"}
-                              id={`role-${managedUser._id}`}
+                              defaultValue={u.role}
+                              id={`user-role-${u._id}`}
                               className="rounded-xl border border-slate-300 px-3 py-2"
                             >
                               {ROLE_OPTIONS.map((role) => (
@@ -623,24 +617,23 @@ export default function AdminDashboard() {
                               type="button"
                               onClick={() => {
                                 const selectedRole = document.getElementById(
-                                  `role-${managedUser._id}`,
+                                  `user-role-${u._id}`,
                                 )?.value;
-                                updateUserRole(managedUser._id, selectedRole);
+                                updateUserRole(u._id, selectedRole);
                               }}
                               className="rounded-xl bg-slate-900 text-white px-3 py-2 text-sm hover:bg-black"
                             >
-                              שמור
+                              שמור תפקיד
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => deleteUser(u._id)}
+                              className="rounded-xl bg-red-600 text-white px-3 py-2 text-sm hover:bg-red-700"
+                            >
+                              מחק
                             </button>
                           </div>
-                        </td>
-                        <td className="py-3 px-2">
-                          <button
-                            type="button"
-                            onClick={() => deleteUser(managedUser._id)}
-                            className="rounded-xl bg-red-600 text-white px-3 py-2 text-sm hover:bg-red-700"
-                          >
-                            מחק
-                          </button>
                         </td>
                       </tr>
                     ))}
@@ -652,93 +645,80 @@ export default function AdminDashboard() {
         )}
 
         {tab === "create" && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 max-w-3xl">
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">
-              הוספת משתמש חדש
-            </h2>
-            <p className="text-sm text-slate-500 mb-5">
-              יצירת משתמש חדש מתוך המערכת על ידי האדמין.
-            </p>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <div className="mb-5">
+              <h2 className="text-xl font-semibold text-slate-900">
+                יצירת משתמש חדש
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">
+                ניתן ליצור כאן משתמש באופן יזום מתוך המערכת.
+              </p>
+            </div>
 
             <form
               onSubmit={createUser}
               className="grid grid-cols-1 md:grid-cols-2 gap-4"
             >
-              <div>
-                <label className="block text-sm font-medium mb-1">שם מלא</label>
-                <input
-                  value={newUser.fullName}
-                  onChange={(e) =>
-                    setNewUser((prev) => ({
-                      ...prev,
-                      fullName: e.target.value,
-                    }))
-                  }
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-                  required
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="שם מלא"
+                value={newUser.fullName}
+                onChange={(e) =>
+                  setNewUser((prev) => ({ ...prev, fullName: e.target.value }))
+                }
+                className="rounded-xl border border-slate-300 px-3 py-2.5"
+                required
+              />
 
-              <div>
-                <label className="block text-sm font-medium mb-1">אימייל</label>
-                <input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) =>
-                    setNewUser((prev) => ({ ...prev, email: e.target.value }))
-                  }
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-                  required
-                />
-              </div>
+              <input
+                type="email"
+                placeholder="אימייל"
+                value={newUser.email}
+                onChange={(e) =>
+                  setNewUser((prev) => ({ ...prev, email: e.target.value }))
+                }
+                className="rounded-xl border border-slate-300 px-3 py-2.5"
+                required
+              />
 
-              <div>
-                <label className="block text-sm font-medium mb-1">טלפון</label>
-                <input
-                  value={newUser.phone}
-                  onChange={(e) =>
-                    setNewUser((prev) => ({ ...prev, phone: e.target.value }))
-                  }
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="טלפון"
+                value={newUser.phone}
+                onChange={(e) =>
+                  setNewUser((prev) => ({ ...prev, phone: e.target.value }))
+                }
+                className="rounded-xl border border-slate-300 px-3 py-2.5"
+                required
+              />
 
-              <div>
-                <label className="block text-sm font-medium mb-1">סיסמה</label>
-                <input
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) =>
-                    setNewUser((prev) => ({
-                      ...prev,
-                      password: e.target.value,
-                    }))
-                  }
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-                  required
-                />
-              </div>
+              <input
+                type="password"
+                placeholder="סיסמה"
+                value={newUser.password}
+                onChange={(e) =>
+                  setNewUser((prev) => ({ ...prev, password: e.target.value }))
+                }
+                className="rounded-xl border border-slate-300 px-3 py-2.5"
+                required
+              />
 
-              <div>
-                <label className="block text-sm font-medium mb-1">תפקיד</label>
-                <select
-                  value={newUser.role}
-                  onChange={(e) =>
-                    setNewUser((prev) => ({ ...prev, role: e.target.value }))
-                  }
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-                >
-                  {ROLE_OPTIONS.map((role) => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                value={newUser.role}
+                onChange={(e) =>
+                  setNewUser((prev) => ({ ...prev, role: e.target.value }))
+                }
+                className="rounded-xl border border-slate-300 px-3 py-2.5"
+              >
+                {ROLE_OPTIONS.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
 
-              <div className="flex items-center gap-2 mt-7">
+              <label className="flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2.5">
                 <input
-                  id="isApproved"
                   type="checkbox"
                   checked={newUser.isApproved}
                   onChange={(e) =>
@@ -748,10 +728,8 @@ export default function AdminDashboard() {
                     }))
                   }
                 />
-                <label htmlFor="isApproved" className="text-sm font-medium">
-                  לאשר את המשתמש מיד
-                </label>
-              </div>
+                <span>לאשר את המשתמש מיד</span>
+              </label>
 
               <div className="md:col-span-2">
                 <button
@@ -821,7 +799,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1300px] text-right">
+                <table className="w-full min-w-[1250px] text-right">
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500 text-sm">
                       <th className="py-3 px-2">שם מלא</th>
@@ -831,7 +809,7 @@ export default function AdminDashboard() {
                       <th className="py-3 px-2">הודעה</th>
                       <th className="py-3 px-2">סטטוס</th>
                       <th className="py-3 px-2">נוצר בתאריך</th>
-                      <th className="py-3 px-2">פעולות</th>
+                      <th className="py-3 px-2">עדכון סטטוס</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -849,7 +827,11 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="py-3 px-2">
-                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${leadStatusClass(
+                              lead.status,
+                            )}`}
+                          >
                             {leadStatusLabel(lead.status)}
                           </span>
                         </td>
@@ -883,14 +865,6 @@ export default function AdminDashboard() {
                               className="rounded-xl bg-slate-900 text-white px-3 py-2 text-sm hover:bg-black"
                             >
                               שמור סטטוס
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => deleteLead(lead._id)}
-                              className="rounded-xl bg-red-600 text-white px-3 py-2 text-sm hover:bg-red-700"
-                            >
-                              מחק
                             </button>
                           </div>
                         </td>

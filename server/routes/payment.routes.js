@@ -4,6 +4,7 @@ const router = express.Router();
 const Payment = require("../models/Payment");
 const { protect, authorize } = require("../middleware/authMiddleware");
 const { sendDiscordPaymentNotification } = require("../utils/discordNotifier");
+const { sendPaymentReceiptEmail } = require("../utils/emailService");
 
 function getBaseClientUrl() {
   return process.env.CLIENT_URL || "http://localhost:3000";
@@ -70,6 +71,8 @@ async function createDirectPayment({ req, amount, city, monthKey, provider }) {
   });
 
   await sendPaymentDiscordNotification(req, payment, provider);
+  await sendPaymentReceiptEmail(req.user, payment);
+
   return payment;
 }
 
@@ -88,6 +91,12 @@ router.post("/", protect, authorize("tenant"), async (req, res) => {
     }
 
     const provider = normalizePaymentMethod(paymentMethod);
+    if (provider === "credit") {
+      return res.status(400).json({
+        message:
+          "תשלום בכרטיס אשראי עדיין לא מחובר בצורה מאובטחת. כרגע ניתן לשלם באמצעות PayPal בלבד.",
+      });
+    }
 
     if (provider === "paypal") {
       const pendingPayment = await Payment.create({
@@ -211,6 +220,7 @@ router.get(
 
       if (payment.status === "paid") {
         await sendPaymentDiscordNotification(req, payment, "paypal");
+        await sendPaymentReceiptEmail(req.user, payment);
       }
 
       return res.json({
@@ -259,6 +269,8 @@ router.get("/committee", protect, authorize("committee"), async (req, res) => {
       .json({ message: "Failed to load payments", error: err.message });
   }
 });
+
+module.exports = router;
 
 module.exports = router;
 19;

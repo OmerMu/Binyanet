@@ -1,59 +1,55 @@
-const mongoose = require("mongoose");
 const Fault = require("../models/Fault");
+const { sendFaultCreatedEmail } = require("../utils/emailService");
 
-// Tenant creates a fault
 exports.createFault = async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, description, imageUrl, imagePublicId } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({ message: "נא למלא כותרת ותיאור" });
     }
 
-    // Important: attach buildingId so dashboards can filter correctly
     const fault = new Fault({
       title,
       description,
       tenantId: req.user._id,
       buildingId: req.user?.buildingId ?? null,
+      imageUrl: String(imageUrl || "").trim(),
+      imagePublicId: String(imagePublicId || "").trim(),
     });
+
     await fault.save();
-    res.status(201).json(fault);
+    await sendFaultCreatedEmail(req.user, fault);
+
+    return res.status(201).json(fault);
   } catch (err) {
     console.error("CREATE FAULT ERROR:", err);
-    res.status(500).json({ message: "שגיאה ביצירת תקלה" });
+    return res.status(500).json({ message: "שגיאה ביצירת תקלה" });
   }
 };
 
-// דייר – רואה רק את התקלות שלו
 exports.getMyFaults = async (req, res) => {
   try {
     const faults = await Fault.find({ tenantId: req.user._id }).sort({
       createdAt: -1,
     });
 
-    res.json(faults);
+    return res.json(faults);
   } catch (err) {
     console.error("GET MY FAULTS ERROR:", err);
-    res.status(500).json({ message: "שגיאה בשליפת תקלות" });
+    return res.status(500).json({ message: "שגיאה בשליפת תקלות" });
   }
 };
 
-// אדמין – רואה את כל התקלות
-// controllers/faultController.js
-
-// Admin/Committee - get faults (by buildingId)
 exports.getAllFaults = async (req, res) => {
   try {
     const role = req.user?.role;
 
-    // Global admin: see everything
     if (role === "admin") {
       const faults = await Fault.find({}).sort({ createdAt: -1 });
       return res.json(faults);
     }
 
-    // Committee: see only its building
     if (role === "committee") {
       const buildingId = req.user?.buildingId;
       if (!buildingId) return res.json([]);
@@ -64,13 +60,10 @@ exports.getAllFaults = async (req, res) => {
     return res.status(403).json({ message: "Not allowed" });
   } catch (err) {
     console.error("GET ALL FAULTS ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
-// אדמין – שינוי סטטוס תקלה
-
-// אדמין – שינוי סטטוס ו/או הוספת הערת ועד
 exports.updateFault = async (req, res) => {
   try {
     const { status, adminNote, historyNote } = req.body;
@@ -78,7 +71,6 @@ exports.updateFault = async (req, res) => {
     const fault = await Fault.findById(req.params.id);
     if (!fault) return res.status(404).json({ message: "Fault not found" });
 
-    // track status change
     if (status && status !== fault.status) {
       fault.history.push({
         text: `סטטוס השתנה ל: ${status}`,
@@ -88,12 +80,10 @@ exports.updateFault = async (req, res) => {
       fault.status = status;
     }
 
-    // update admin note (optional)
     if (typeof adminNote === "string" && adminNote !== fault.adminNote) {
       fault.adminNote = adminNote;
     }
 
-    // ✅ add treatment history note
     if (historyNote && String(historyNote).trim()) {
       fault.history.push({
         text: String(historyNote).trim(),
@@ -105,11 +95,12 @@ exports.updateFault = async (req, res) => {
     await fault.save();
     return res.json(fault);
   } catch (err) {
-    res
+    return res
       .status(500)
       .json({ message: "Error updating fault", error: err.message });
   }
 };
+
 exports.getCommitteeFaults = async (req, res) => {
   try {
     const buildingId = req.user?.buildingId ?? null;

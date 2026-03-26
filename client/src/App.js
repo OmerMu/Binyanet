@@ -1,5 +1,3 @@
-// client/src/App.js
-
 import {
   BrowserRouter as Router,
   Routes,
@@ -20,6 +18,7 @@ import Register from "./pages/Register";
 import TenantDashboard from "./pages/TenantDashboard";
 import CommitteeDashboard from "./pages/CommitteeDashboard";
 import CompanyDashboard from "./pages/CompanyDashboard";
+import ResetPassword from "./pages/ResetPassword";
 
 function RoleRedirect() {
   const storedUser = localStorage.getItem("user");
@@ -48,12 +47,11 @@ export default function App() {
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
-
-            {/* Redirect old route to correct dashboard */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/dashboard" element={<RoleRedirect />} />
-            {/* TENANT */}
+
             <Route
               path="/tenant"
               element={
@@ -63,7 +61,6 @@ export default function App() {
               }
             />
 
-            {/* COMMITTEE */}
             <Route
               path="/committee"
               element={
@@ -73,7 +70,6 @@ export default function App() {
               }
             />
 
-            {/* COMPANY */}
             <Route
               path="/company"
               element={
@@ -83,7 +79,6 @@ export default function App() {
               }
             />
 
-            {/* ADMIN */}
             <Route
               path="/admin"
               element={
@@ -117,7 +112,6 @@ export default function App() {
               }
             />
 
-            {/* fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

@@ -40,12 +40,96 @@ export default function CommitteeDashboard() {
     return s || "לא ידוע";
   };
 
-  const paymentStatusLabel = (s) => {
-    if (s === "paid") return "שולם";
-    if (s === "refunded") return "זוכה";
-    return s || "לא ידוע";
+  const paymentStatusLabel = (status) => {
+    if (status === "paid") return "שולם";
+    if (status === "pending") return "בתהליך";
+    if (status === "failed" || status === "cancelled") return "לא שולם";
+    if (status === "refunded") return "זוכה";
+    return status || "לא ידוע";
   };
 
+  const paymentMethodLabel = (method) => {
+    if (method === "paypal") return "PayPal";
+    if (method === "applepay") return "Apple Pay";
+    if (method === "googlepay") return "Google Pay";
+    if (method === "bit") return "Bit";
+    if (method === "credit") return "כרטיס אשראי";
+    return method || "לא ידוע";
+  };
+
+  const paymentMethodIcon = (method) => {
+    if (method === "paypal") {
+      return (
+        <img
+          src="https://www.paypalobjects.com/webstatic/icon/pp258.png"
+          alt="PayPal"
+          className="w-5 h-5 object-contain"
+        />
+      );
+    }
+
+    if (method === "applepay") {
+      return (
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg"
+          alt="Apple Pay"
+          className="w-5 h-5 object-contain"
+        />
+      );
+    }
+
+    if (method === "googlepay") {
+      return (
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg"
+          alt="Google Pay"
+          className="w-5 h-5 object-contain"
+        />
+      );
+    }
+
+    if (method === "bit") {
+      return (
+        <span className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
+          bit
+        </span>
+      );
+    }
+
+    if (method === "credit") {
+      return (
+        <span className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+          ₪
+        </span>
+      );
+    }
+
+    return (
+      <span className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+        ?
+      </span>
+    );
+  };
+
+  const paymentStatusClass = (status) => {
+    if (status === "paid") {
+      return "border-green-200 bg-green-50 text-green-700";
+    }
+
+    if (status === "pending") {
+      return "border-orange-200 bg-orange-50 text-orange-700";
+    }
+
+    if (status === "failed" || status === "cancelled") {
+      return "border-red-200 bg-red-50 text-red-700";
+    }
+
+    if (status === "refunded") {
+      return "border-slate-200 bg-slate-50 text-slate-700";
+    }
+
+    return "border-slate-200 bg-slate-50 text-slate-700";
+  };
   const formatDate = (value) => {
     if (!value) return "—";
     return new Date(value).toLocaleString("he-IL");
@@ -679,10 +763,12 @@ export default function CommitteeDashboard() {
                       <th className="p-3">חודש</th>
                       <th className="p-3">עיר</th>
                       <th className="p-3">סכום</th>
+                      <th className="p-3">אופן תשלום</th>
                       <th className="p-3">סטטוס</th>
                       <th className="p-3">תאריך</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {payments.map((p) => (
                       <tr key={p._id} className="border-b border-slate-100">
@@ -693,7 +779,24 @@ export default function CommitteeDashboard() {
                         <td className="p-3 font-semibold">
                           ₪{Number(p.amount || 0).toLocaleString("he-IL")}
                         </td>
-                        <td className="p-3">{paymentStatusLabel(p.status)}</td>
+
+                        <td className="p-3">
+                          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm">
+                            {paymentMethodIcon(p.provider)}
+                            <span>{paymentMethodLabel(p.provider)}</span>
+                          </div>
+                        </td>
+
+                        <td className="p-3">
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-sm ${paymentStatusClass(
+                              p.status,
+                            )}`}
+                          >
+                            {paymentStatusLabel(p.status)}
+                          </span>
+                        </td>
+
                         <td className="p-3 text-sm text-slate-600">
                           {formatDate(p.createdAt)}
                         </td>

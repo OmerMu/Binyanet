@@ -1,12 +1,16 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const {
+  sendPendingApprovalEmail,
+  sendPasswordResetEmail,
+} = require("../utils/emailService");
+
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
 async function verifyRecaptcha(recaptchaToken, reqIp) {
-  // אם אין מפתח ב-ENV – לא נחסום (כדי שלא יקרוס בפיתוח)
   if (!process.env.RECAPTCHA_SECRET_KEY) return { ok: true, skipped: true };
 
   if (!recaptchaToken) return { ok: false, reason: "Missing recaptcha token" };
@@ -28,7 +32,6 @@ async function verifyRecaptcha(recaptchaToken, reqIp) {
   return { ok: true, data };
 }
 
-// Register (self-register → waiting approval)
 exports.register = async (req, res) => {
   try {
     const { fullName, email, phone, password, requestedRole } = req.body;
@@ -45,10 +48,12 @@ exports.register = async (req, res) => {
       email,
       phone,
       password,
-      role: "tenant", // תמיד מתחיל tenant
+      role: "tenant",
       requestedRole: safeRequestedRole,
-      isApproved: false, // ממתין לאישור אדמין
+      isApproved: false,
     });
+
+    await sendPendingApprovalEmail(user);
 
     return res.status(201).json({
       message: "Registration successful. Waiting for admin approval.",
@@ -61,7 +66,6 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login (with reCAPTCHA verify)
 exports.login = async (req, res) => {
   try {
     const { email, password, recaptchaToken } = req.body;
@@ -105,57 +109,39 @@ exports.login = async (req, res) => {
       .json({ message: "Login failed", error: error.message });
   }
 };
+
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email: String(email || "")
+        .trim()
+        .toLowerCase(),
+    });
 
     if (!user) {
       return res.status(200).json({ message: "אם המייל קיים נשלח קישור" });
     }
 
-    // יצירת token
     const resetToken = crypto.randomBytes(32).toString("hex");
-
-    // שמירת hash
     const hashedToken = crypto
       .createHash("sha256")
       .update(resetToken)
       .digest("hex");
 
     user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 דקות
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
 
     await user.save();
+    await sendPasswordResetEmail(user, resetToken);
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-
-    // שליחת מייל
-    const nodemailer = require("nodemailer");
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      to: user.email,
-      subject: "איפוס סיסמה",
-      html: `
-        <h3>איפוס סיסמה</h3>
-        <p>לחץ על הקישור הבא:</p>
-        <a href="${resetUrl}">${resetUrl}</a>
-      `,
-    });
-
-    res.json({ message: "נשלח קישור לאיפוס סיסמה" });
+    return res.json({ message: "נשלח קישור לאיפוס סיסמה" });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: err.message });
   }
 };
+
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
@@ -178,8 +164,8 @@ exports.resetPassword = async (req, res) => {
 
     await user.save();
 
-    res.json({ message: "סיסמה עודכנה בהצלחה" });
+    return res.json({ message: "סיסמה עודכנה בהצלחה" });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: err.message });
   }
 };

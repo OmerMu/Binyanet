@@ -5,17 +5,20 @@ import ReCAPTCHA from "react-google-recaptcha";
 function roleHome(role) {
   if (role === "admin") return "/admin";
   if (role === "company") return "/company";
-  if (role === "committee") return "/committee/dashboard";
+  if (role === "committee") return "/committee";
   return "/tenant";
 }
 
 export default function LoginModal({ onClose }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [forgotMessage, setForgotMessage] = useState("");
+  const [forgotError, setForgotError] = useState("");
 
   const [recaptchaToken, setRecaptchaToken] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const siteKey = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
 
@@ -35,7 +38,6 @@ export default function LoginModal({ onClose }) {
 
     setLoading(true);
 
-    // ✅ Prevent token/user mismatch
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
@@ -56,6 +58,30 @@ export default function LoginModal({ onClose }) {
       setRecaptchaToken(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setForgotError("");
+    setForgotMessage("");
+
+    if (!email.trim()) {
+      setForgotError("הזן קודם את האימייל שלך.");
+      return;
+    }
+
+    setForgotLoading(true);
+
+    try {
+      const res = await api.post("/api/auth/forgot-password", {
+        email: email.trim().toLowerCase(),
+      });
+
+      setForgotMessage(res.data?.message || "אם המייל קיים נשלח קישור");
+    } catch (err) {
+      setForgotError(err?.response?.data?.message || "שליחת הקישור נכשלה.");
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -89,6 +115,17 @@ export default function LoginModal({ onClose }) {
             className="w-full border border-gray-300 rounded-lg px-3 py-2"
           />
 
+          <div className="flex items-center justify-between text-sm">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={forgotLoading}
+              className="text-blue-600 underline hover:text-blue-700 disabled:opacity-60"
+            >
+              {forgotLoading ? "שולח..." : "שכחתי סיסמה"}
+            </button>
+          </div>
+
           <div className="flex justify-end">
             <ReCAPTCHA
               sitekey={siteKey}
@@ -99,6 +136,14 @@ export default function LoginModal({ onClose }) {
 
           {error && (
             <div className="text-red-600 text-sm text-right">{error}</div>
+          )}
+          {forgotError && (
+            <div className="text-red-600 text-sm text-right">{forgotError}</div>
+          )}
+          {forgotMessage && (
+            <div className="text-green-600 text-sm text-right">
+              {forgotMessage}
+            </div>
           )}
 
           <button

@@ -63,7 +63,7 @@ exports.updateLeadStatus = async (req, res) => {
       return res.status(400).json({ message: "מזהה ליד לא תקין" });
     }
 
-    const allowedStatuses = ["new", "contacted", "closed"];
+    const allowedStatuses = ["new", "in_progress", "done"];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ message: "סטטוס לא חוקי" });
     }
@@ -86,30 +86,6 @@ exports.updateLeadStatus = async (req, res) => {
     console.error("updateLeadStatus error:", error);
     return res.status(500).json({
       message: "שגיאה בעדכון סטטוס הליד",
-      error: error.message,
-    });
-  }
-};
-
-exports.deleteLead = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "מזהה ליד לא תקין" });
-    }
-
-    const deletedLead = await Lead.findByIdAndDelete(id);
-
-    if (!deletedLead) {
-      return res.status(404).json({ message: "Lead not found" });
-    }
-
-    return res.json({ message: "הליד נמחק בהצלחה" });
-  } catch (error) {
-    console.error("deleteLead error:", error);
-    return res.status(500).json({
-      message: "שגיאה במחיקת ליד",
       error: error.message,
     });
   }

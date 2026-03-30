@@ -69,6 +69,9 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password, recaptchaToken } = req.body;
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
 
     const ip =
       req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
@@ -79,7 +82,7 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "reCAPTCHA verification failed" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const isMatch = await user.comparePassword(password);

@@ -2,8 +2,15 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+
 const app = express();
-app.use(cors());
+
+const corsOptions = {
+  origin: "http://localhost:5001",
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const paymentRoutes = require("./routes/payment.routes");
@@ -23,6 +30,7 @@ app.use("/api/leads", leadRoutes);
 app.get("/", (req, res) => {
   res.json({ message: "Server is running" });
 });
+
 // חיבור לדאטהבייס
 mongoose
   .connect(process.env.MONGO_URI)

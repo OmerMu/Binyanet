@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
-
+const { sendApprovalEmail } = require("../utils/emailService");
 const allowedRoles = ["admin", "company", "committee", "tenant"];
 
 function normalizeEmail(email) {
